@@ -1,0 +1,9 @@
+/**
+ * Miku Quizer - Injected Page Styles
+ */
+
+/* Clean and invisible by default */
+.miku-suggested {
+  outline: none !important;
+  box-shadow: none !important;
+}
