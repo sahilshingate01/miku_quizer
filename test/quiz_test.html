@@ -1,0 +1,452 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Miku Quizer - Interactive Test Suite</title>
+  <style>
+    :root {
+      --primary: #39C5BB;
+      --primary-dark: #2aa39a;
+      --bg: #0e1724;
+      --card-bg: #152232;
+      --text: #e6f1f8;
+      --text-muted: #8ca3b8;
+      --border: #233549;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 40px 20px;
+    }
+
+    .container {
+      max-width: 760px;
+      width: 100%;
+    }
+
+    /* Top banner */
+    .top-banner {
+      background: rgba(57, 197, 187, 0.1);
+      border: 1px solid rgba(57, 197, 187, 0.3);
+      border-radius: 12px;
+      padding: 16px 20px;
+      margin-bottom: 24px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .brand-title {
+      font-size: 18px;
+      font-weight: 800;
+      color: var(--primary);
+    }
+
+    .brand-subtitle {
+      font-size: 12px;
+      color: var(--text-muted);
+    }
+
+    .quiz-card {
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 30px;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4);
+      margin-bottom: 20px;
+    }
+
+    .progress-bar-container {
+      width: 100%;
+      height: 6px;
+      background: #233549;
+      border-radius: 3px;
+      overflow: hidden;
+      margin-bottom: 24px;
+    }
+
+    .progress-bar-fill {
+      height: 100%;
+      background: var(--primary);
+      width: 20%;
+      transition: width 0.3s ease;
+    }
+
+    .quiz-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 16px;
+    }
+
+    .question-badge {
+      font-size: 12px;
+      font-weight: 800;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      color: var(--primary);
+      background: rgba(57, 197, 187, 0.15);
+      padding: 4px 10px;
+      border-radius: 6px;
+    }
+
+    .quiz-timer {
+      font-size: 13px;
+      color: var(--text-muted);
+      font-variant-numeric: tabular-nums;
+    }
+
+    .question-text {
+      font-size: 20px;
+      font-weight: 600;
+      line-height: 1.45;
+      margin-bottom: 28px;
+      color: #ffffff;
+    }
+
+    /* Options */
+    .options-group {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      margin-bottom: 30px;
+    }
+
+    .option-item {
+      display: flex;
+      align-items: center;
+      padding: 14px 18px;
+      background: #1c2c3f;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      user-select: none;
+    }
+
+    .option-item:hover {
+      background: #233850;
+      border-color: #3b5a7d;
+    }
+
+    .option-item input[type="radio"] {
+      margin-right: 14px;
+      width: 18px;
+      height: 18px;
+      accent-color: var(--primary);
+      cursor: pointer;
+    }
+
+    .option-label-pill {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 26px;
+      height: 26px;
+      background: rgba(255, 255, 255, 0.08);
+      border-radius: 6px;
+      font-weight: 700;
+      font-size: 13px;
+      margin-right: 12px;
+      color: var(--primary);
+    }
+
+    .option-text {
+      font-size: 15px;
+      color: var(--text);
+    }
+
+    /* Action Toolbar */
+    .quiz-actions {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-top: 1px solid var(--border);
+      padding-top: 20px;
+    }
+
+    .aux-actions {
+      display: flex;
+      gap: 10px;
+    }
+
+    .nav-actions {
+      display: flex;
+      gap: 10px;
+    }
+
+    .btn {
+      padding: 10px 18px;
+      border-radius: 8px;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      border: none;
+      transition: all 0.15s ease;
+    }
+
+    .btn-primary {
+      background: var(--primary);
+      color: #0e1724;
+    }
+
+    .btn-primary:hover {
+      background: var(--primary-dark);
+    }
+
+    .btn-secondary {
+      background: #233549;
+      color: var(--text);
+    }
+
+    .btn-secondary:hover {
+      background: #2d435d;
+    }
+
+    .btn-outline {
+      background: transparent;
+      border: 1px solid var(--border);
+      color: var(--text-muted);
+    }
+
+    .btn-outline:hover {
+      background: rgba(255, 255, 255, 0.05);
+      color: var(--text);
+    }
+
+    .btn:disabled {
+      opacity: 0.4;
+      cursor: not-allowed;
+    }
+
+    /* Event log */
+    .event-logger {
+      background: #0b111a;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 14px;
+      font-family: monospace;
+      font-size: 12px;
+      color: #7997b0;
+      max-height: 140px;
+      overflow-y: auto;
+    }
+
+    .log-title {
+      font-weight: bold;
+      color: var(--primary);
+      margin-bottom: 6px;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="top-banner">
+      <div>
+        <div class="brand-title">🧪 Miku Quizer Mock Quiz Environment</div>
+        <div class="brand-subtitle">Simulates real-world dynamic quiz pages, DOM mutations, and option transitions.</div>
+      </div>
+      <span style="font-size: 24px;">🎵</span>
+    </div>
+
+    <div class="quiz-card" id="quiz-card">
+      <div class="progress-bar-container">
+        <div class="progress-bar-fill" id="progress-bar"></div>
+      </div>
+
+      <div class="quiz-header">
+        <div class="question-badge" id="question-badge">QUESTION 1/5</div>
+        <div class="quiz-timer">⏱️ Time Remaining: <span id="timer-val">14:52</span></div>
+      </div>
+
+      <fieldset style="border: none; padding: 0; margin: 0;">
+        <legend class="question-text" id="question-text">
+          What is the VLC command-line flag that tells VLC to exit automatically when a song finishes playing?
+        </legend>
+
+        <div class="options-group" id="options-container" role="radiogroup">
+          <!-- Options rendered dynamically -->
+        </div>
+      </fieldset>
+
+      <div class="quiz-actions">
+        <div class="aux-actions">
+          <button type="button" class="btn btn-outline" id="btn-clear-selection">Clear Selection</button>
+          <button type="button" class="btn btn-outline" id="btn-flag">🚩 Flag for Review</button>
+        </div>
+        <div class="nav-actions">
+          <button type="button" class="btn btn-secondary" id="btn-prev" disabled>Previous</button>
+          <button type="button" class="btn btn-primary" id="btn-next">Next Question →</button>
+          <button type="button" class="btn btn-primary" id="btn-submit" style="display: none; background: #ff4757; color: white;">Submit Quiz</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Event Logger for Tester verification -->
+    <div class="event-logger" id="event-log">
+      <div class="log-title">📋 Simulation Event Log</div>
+      <div>[Ready] Mock Quiz Page initialized. Load Miku Quizer unpacked extension to test detection.</div>
+    </div>
+  </div>
+
+  <script>
+    const quizData = [
+      {
+        id: 1,
+        question: "What is the VLC command-line flag that tells VLC to exit automatically when a song finishes playing?",
+        options: [
+          { label: "A", text: "--exit-on-finish" },
+          { label: "B", text: "--auto-quit" },
+          { label: "C", text: "--single-instance" },
+          { label: "D", text: "--play-and-exit" }
+        ]
+      },
+      {
+        id: 2,
+        question: "Which HTTP status code corresponds to '429 Too Many Requests'?",
+        options: [
+          { label: "A", text: "403 Forbidden" },
+          { label: "B", text: "429 Too Many Requests" },
+          { label: "C", text: "503 Service Unavailable" },
+          { label: "D", text: "408 Request Timeout" }
+        ]
+      },
+      {
+        id: 3,
+        question: "In JavaScript, what does the expression `typeof null` evaluate to due to a legacy bug?",
+        options: [
+          { label: "A", text: "'undefined'" },
+          { label: "B", text: "'null'" },
+          { label: "C", text: "'object'" },
+          { label: "D", text: "'number'" }
+        ]
+      },
+      {
+        id: 4,
+        question: "Which Git command is used to record changes to the repository with a commit message?",
+        options: [
+          { label: "A", text: "git checkout -b <name>" },
+          { label: "B", text: "git commit -m '<message>'" },
+          { label: "C", text: "git push origin main" },
+          { label: "D", text: "git rebase master" }
+        ]
+      },
+      {
+        id: 5,
+        question: "Which CSS property controls the vertical stacking order of positioned elements?",
+        options: [
+          { label: "A", text: "opacity" },
+          { label: "B", text: "z-index" },
+          { label: "C", text: "display" },
+          { label: "D", text: "flex-order" }
+        ]
+      }
+    ];
+
+    let currentIndex = 0;
+    const userAnswers = {};
+
+    const questionBadge = document.getElementById('question-badge');
+    const questionText = document.getElementById('question-text');
+    const optionsContainer = document.getElementById('options-container');
+    const progressBar = document.getElementById('progress-bar');
+    const btnPrev = document.getElementById('btn-prev');
+    const btnNext = document.getElementById('btn-next');
+    const btnSubmit = document.getElementById('btn-submit');
+    const btnClearSelection = document.getElementById('btn-clear-selection');
+    const eventLog = document.getElementById('event-log');
+
+    function logEvent(msg) {
+      const line = document.createElement('div');
+      const time = new Date().toLocaleTimeString();
+      line.textContent = `[${time}] ${msg}`;
+      eventLog.appendChild(line);
+      eventLog.scrollTop = eventLog.scrollHeight;
+    }
+
+    function renderQuestion(index) {
+      const item = quizData[index];
+      questionBadge.textContent = `QUESTION ${index + 1}/${quizData.length}`;
+      questionText.textContent = item.question;
+      progressBar.style.width = `${((index + 1) / quizData.length) * 100}%`;
+
+      optionsContainer.innerHTML = '';
+      item.options.forEach((opt) => {
+        const optionWrapper = document.createElement('label');
+        optionWrapper.className = 'option-item';
+        optionWrapper.setAttribute('for', `opt-${index}-${opt.label}`);
+
+        const isChecked = userAnswers[index] === opt.label;
+
+        optionWrapper.innerHTML = `
+          <input type="radio" name="quiz-question-${index}" id="opt-${index}-${opt.label}" value="${opt.label}" ${isChecked ? 'checked' : ''}>
+          <span class="option-label-pill">${opt.label}</span>
+          <span class="option-text">${opt.text}</span>
+        `;
+
+        optionWrapper.querySelector('input').addEventListener('change', (e) => {
+          if (e.target.checked) {
+            userAnswers[index] = opt.label;
+            logEvent(`User manually selected Option ${opt.label}: "${opt.text}"`);
+          }
+        });
+
+        optionsContainer.appendChild(optionWrapper);
+      });
+
+      btnPrev.disabled = index === 0;
+      if (index === quizData.length - 1) {
+        btnNext.style.display = 'none';
+        btnSubmit.style.display = 'inline-block';
+      } else {
+        btnNext.style.display = 'inline-block';
+        btnSubmit.style.display = 'none';
+      }
+
+      logEvent(`Rendered Question ${index + 1}/${quizData.length} ("${item.question.substring(0, 45)}...")`);
+    }
+
+    btnNext.addEventListener('click', () => {
+      if (currentIndex < quizData.length - 1) {
+        currentIndex++;
+        renderQuestion(currentIndex);
+      }
+    });
+
+    btnPrev.addEventListener('click', () => {
+      if (currentIndex > 0) {
+        currentIndex--;
+        renderQuestion(currentIndex);
+      }
+    });
+
+    btnClearSelection.addEventListener('click', () => {
+      delete userAnswers[currentIndex];
+      const radios = optionsContainer.querySelectorAll('input[type="radio"]');
+      radios.forEach(r => r.checked = false);
+      logEvent(`User cleared selection for Question ${currentIndex + 1}`);
+    });
+
+    btnSubmit.addEventListener('click', () => {
+      alert('Quiz Submitted! Miku Quizer provided suggestions while leaving final submission strictly to you.');
+      logEvent('Quiz submitted by user manual action.');
+    });
+
+    // Initial render
+    renderQuestion(0);
+  </script>
+</body>
+</html>
