@@ -213,7 +213,7 @@ async function triggerOAuthLogin() {
   // Pre-generate request for zero-latency URL return
   try {
     const preReq = await createOpenAIOAuthRequest({
-      redirectUri: 'http://127.0.0.1:1455/auth/callback'
+      redirectUri: 'http://localhost:1455/auth/callback'
     });
     if (preReq && preReq.authorizationUrl) {
       currentAuthUrl = preReq.authorizationUrl;
@@ -224,8 +224,7 @@ async function triggerOAuthLogin() {
 
   activeLoginPromise = runOpenAIOAuthLogin({
     openBrowser: true,
-    redirectHost: '127.0.0.1',
-    host: '127.0.0.1',
+    redirectHost: 'localhost',
     onMessage: (msg) => {
       console.log('[Miku Quizer OAuth]', msg);
       if (typeof msg === 'string' && msg.includes('login URL:')) {
