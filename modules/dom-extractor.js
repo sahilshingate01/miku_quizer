@@ -178,6 +178,46 @@ class QuizExtractor {
   }
 
   /**
+   * Find the true options container ancestor that has child cards for both A and B.
+   */
+  findOptionsParentFromABadge(aBadge) {
+    if (!aBadge) return null;
+    let cur = aBadge;
+    let depth = 0;
+    while (cur && cur.parentElement && cur.parentElement !== document.body && depth < 6) {
+      const parent = cur.parentElement;
+      const children = Array.from(parent.children).filter(c => this.isVisible(c) && !this.isIgnoredText(c.innerText));
+
+      // Parent must have at least one child with "A" and one child with "B"
+      const hasA = children.some(c => {
+        const text = this.cleanText(c.innerText || c.textContent).toUpperCase();
+        if (text.startsWith('A') || text === 'A' || text.startsWith('A.') || text.startsWith('A)')) return true;
+        return Array.from(c.querySelectorAll('div, span, b, strong, p')).some(el => {
+          const t = this.cleanText(el.innerText || el.textContent).toUpperCase();
+          return t === 'A' || t === 'A.' || t === 'A)';
+        });
+      });
+
+      const hasB = children.some(c => {
+        const text = this.cleanText(c.innerText || c.textContent).toUpperCase();
+        if (text.startsWith('B') || text === 'B' || text.startsWith('B.') || text.startsWith('B)')) return true;
+        return Array.from(c.querySelectorAll('div, span, b, strong, p')).some(el => {
+          const t = this.cleanText(el.innerText || el.textContent).toUpperCase();
+          return t === 'B' || t === 'B.' || t === 'B)';
+        });
+      });
+
+      if (hasA && hasB && children.length >= 2 && children.length <= 10) {
+        return parent;
+      }
+
+      cur = parent;
+      depth++;
+    }
+    return null;
+  }
+
+  /**
    * Strategy 1: Universal Option-Cluster Reverse Detection
    */
   detectByOptionClusters() {
@@ -196,15 +236,7 @@ class QuizExtractor {
     }
 
     for (const aBadge of candidateABadges) {
-      let aCard = aBadge;
-      while (aCard && aCard.parentElement && aCard.parentElement !== document.body && aCard.offsetHeight < 120) {
-        if (aCard.parentElement.children.length >= 2 && aCard.parentElement.children.length <= 10) {
-          break;
-        }
-        aCard = aCard.parentElement;
-      }
-
-      const optionsParent = aCard?.parentElement;
+      const optionsParent = this.findOptionsParentFromABadge(aBadge);
       if (!optionsParent || this.isInsideSidebarOrList(optionsParent)) continue;
 
       const cards = Array.from(optionsParent.children).filter(c => this.isVisible(c) && !this.isIgnoredText(c.innerText));
@@ -362,29 +394,20 @@ class QuizExtractor {
     const seenTexts = new Set();
     const seenLabels = new Set();
 
-    // 1. First look for elements with [A], [B], [C], [D] badges
-    const candidateABadges = Array.from(container.querySelectorAll('div, span, button, b, strong')).filter(
-      c => this.isVisible(c) && /^[A-D]$/i.test(this.cleanText(c.innerText || c.textContent)) && !this.isInsideSidebarOrList(c)
-    );
-
-    for (const badge of candidateABadges) {
-      let card = badge;
-      let cDepth = 0;
-      while (card && card.parentElement && card.parentElement !== container && cDepth < 4) {
-        if (card.parentElement.children.length >= 2 && card.parentElement.children.length <= 8) {
-          break;
-        }
-        card = card.parentElement;
-        cDepth++;
-      }
-
-      if (card && !validOptions.some(vo => vo.element === card || vo.element.contains(card))) {
-        const opt = this.extractOptionData(card, validOptions.length);
-        if (opt && opt.text && !this.isIgnoredText(opt.text) && !seenTexts.has(opt.text.toLowerCase())) {
-          seenLabels.add(opt.label);
-          seenTexts.add(opt.text.toLowerCase());
-          validOptions.push(opt);
-        }
+    // 1. First look for A badge and find its true options parent container
+    const aBadge = candidateABadges.find(b => this.cleanText(b.innerText || b.textContent).toUpperCase() === 'A');
+    if (aBadge) {
+      const optionsParent = this.findOptionsParentFromABadge(aBadge);
+      if (optionsParent) {
+        const optionCards = Array.from(optionsParent.children).filter(c => this.isVisible(c) && !this.isIgnoredText(c.innerText));
+        optionCards.forEach((card, idx) => {
+          const opt = this.extractOptionData(card, idx);
+          if (opt && opt.text && !this.isIgnoredText(opt.text) && !seenTexts.has(opt.text.toLowerCase())) {
+            seenLabels.add(opt.label);
+            seenTexts.add(opt.text.toLowerCase());
+            validOptions.push(opt);
+          }
+        });
       }
     }
 
@@ -530,22 +553,12 @@ class QuizExtractor {
     if (aBadges.length === 0) return null;
     const aBadge = aBadges[0];
 
-    // Find the option card wrapping badge A
-    let aCard = aBadge;
-    let cDepth = 0;
-    while (aCard && aCard.parentElement && aCard.parentElement !== mainContainer && cDepth < 4) {
-      if (aCard.parentElement.children.length >= 2 && aCard.parentElement.children.length <= 8) {
-        break;
-      }
-      aCard = aCard.parentElement;
-      cDepth++;
-    }
-
-    const optionsParent = aCard?.parentElement;
+    // Find the true options container containing both Card A and Card B
+    const optionsParent = this.findOptionsParentFromABadge(aBadge);
     if (!optionsParent) return null;
 
-    // Extract options from optionsParent children
-    const optionCards = Array.from(optionsParent.children).filter(c => this.isVisible(c));
+    // Extract options from optionsParent children (Card A, Card B, Card C, Card D)
+    const optionCards = Array.from(optionsParent.children).filter(c => this.isVisible(c) && !this.isIgnoredText(c.innerText));
     if (optionCards.length < 2) return null;
 
     const extractedOptions = [];
