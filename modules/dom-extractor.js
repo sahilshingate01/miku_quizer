@@ -511,9 +511,10 @@ class QuizExtractor {
    * Main entry point to extract the current visible quiz question.
    */
   extractQuizQuestion() {
+    // Strategy 2 (Question Header Proximity) is most accurate for structured LMS/Newton portals
     const result =
-      this.detectByOptionClusters() ||
       this.detectByQuestionHeader() ||
+      this.detectByOptionClusters() ||
       this.detectByRadioInputs();
 
     if (!result) return null;
@@ -525,9 +526,27 @@ class QuizExtractor {
       }
     });
 
+    // If total questions not found in header, detect from question palette/sidebar (e.g. Q1..Q11)
+    let totalQuestions = result.totalQuestions;
+    if (!totalQuestions) {
+      let maxQ = 0;
+      const allItems = document.querySelectorAll('div, li, a, button, span');
+      for (const item of allItems) {
+        const txt = (item.innerText || item.textContent || '').trim();
+        const m = txt.match(/^Q(\d+)[\.\:\s]/i);
+        if (m) {
+          const num = parseInt(m[1], 10);
+          if (num > maxQ && num <= 100) maxQ = num;
+        }
+      }
+      if (maxQ >= 2) {
+        totalQuestions = maxQ;
+      }
+    }
+
     return {
       questionNumber: result.questionNumber,
-      totalQuestions: result.totalQuestions,
+      totalQuestions,
       question: cleanQ,
       options: result.options.map(opt => ({
         label: opt.label,

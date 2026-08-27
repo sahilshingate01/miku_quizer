@@ -179,17 +179,20 @@
 
     for (const btn of allCandidates) {
       if (btn.closest('#miku-quizer-root')) continue;
-      const text = (btn.innerText || btn.textContent || '').toLowerCase().trim();
-      const clean = text.replace(/[^a-z]/g, ' ').trim();
+      if (btn.disabled || btn.getAttribute('aria-disabled') === 'true') continue;
+
+      const text = (btn.innerText || btn.textContent || '').trim();
+      const clean = text.toLowerCase().replace(/[^a-z]/g, ' ').replace(/\s+/g, ' ').trim();
       
-      // Match "next", "next >", "next question", "save & next"
+      // Match "next", "next →", "next >", "next question", "save & next"
       if (
-        (clean === 'next' || clean.startsWith('next') || clean.endsWith('next') || clean === 'save next') &&
-        !text.includes('submit') &&
-        !text.includes('previous') &&
-        !text.includes('prev') &&
-        !text.includes('review') &&
-        !text.includes('clear')
+        (clean === 'next' || clean.startsWith('next ') || clean.endsWith(' next') || clean === 'save next') &&
+        !clean.includes('submit') &&
+        !clean.includes('previous') &&
+        !clean.includes('prev') &&
+        !clean.includes('back') &&
+        !clean.includes('review') &&
+        !clean.includes('clear')
       ) {
         nextBtn = btn;
         break;
@@ -199,8 +202,9 @@
     if (!nextBtn) {
       for (const btn of allCandidates) {
         if (btn.closest('#miku-quizer-root')) continue;
+        if (btn.disabled || btn.getAttribute('aria-disabled') === 'true') continue;
         const text = (btn.innerText || btn.textContent || '').toLowerCase();
-        if (text.includes('next') && !text.includes('submit') && !text.includes('prev')) {
+        if (text.includes('next') && !text.includes('submit') && !text.includes('prev') && !text.includes('back')) {
           nextBtn = btn;
           break;
         }
@@ -208,8 +212,10 @@
     }
 
     if (nextBtn) {
-      console.log('[Miku Quizer] Clicking Next button automatically:', nextBtn);
+      console.log('[Miku Quizer] ⏩ Clicking Next button automatically:', nextBtn);
       safelyClickElement(nextBtn);
+      try { nextBtn.click(); } catch (e) {}
+
       // Non-forcing scans so it only triggers when the question hash actually changes on the DOM
       setTimeout(() => { if (isAssistantRunning) scanPage(false); }, 400);
       setTimeout(() => { if (isAssistantRunning) scanPage(false); }, 900);
