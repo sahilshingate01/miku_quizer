@@ -6,6 +6,7 @@ import fs from 'fs';
 import os from 'os';
 import { fileURLToPath } from 'url';
 import { runOpenAIOAuthLogin, startOpenAIOAuthServer } from 'openai-oauth';
+import { createOpenAIOAuthRequest } from '@openai-oauth/core';
 
 dotenv.config();
 
@@ -195,10 +196,22 @@ async function triggerOAuthLogin() {
     return { inProgress: true, authUrl: currentAuthUrl };
   }
 
-  currentAuthUrl = null;
+  // Pre-generate request for zero-latency URL return
+  try {
+    const preReq = await createOpenAIOAuthRequest({
+      redirectUri: 'http://127.0.0.1:1455/auth/callback'
+    });
+    if (preReq && preReq.authorizationUrl) {
+      currentAuthUrl = preReq.authorizationUrl;
+    }
+  } catch (preErr) {
+    console.warn('[Miku Quizer OAuth] Pre-req generation note:', preErr.message);
+  }
 
   activeLoginPromise = runOpenAIOAuthLogin({
     openBrowser: true,
+    redirectHost: '127.0.0.1',
+    host: '127.0.0.1',
     onMessage: (msg) => {
       console.log('[Miku Quizer OAuth]', msg);
       if (typeof msg === 'string' && msg.includes('login URL:')) {
@@ -222,10 +235,10 @@ async function triggerOAuthLogin() {
     return null;
   });
 
-  // Give brief moment for auth URL to generate
-  for (let i = 0; i < 15; i++) {
+  // Give brief moment for auth URL to generate if needed
+  for (let i = 0; i < 10; i++) {
     if (currentAuthUrl) break;
-    await new Promise(r => setTimeout(r, 100));
+    await new Promise(r => setTimeout(r, 50));
   }
 
   return { inProgress: true, authUrl: currentAuthUrl };

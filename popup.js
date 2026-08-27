@@ -285,9 +285,23 @@ document.addEventListener('DOMContentLoaded', async () => {
   const btnGoogleLogin = document.getElementById('btn-google-login');
   const btnReAuth = document.getElementById('btn-re-auth');
 
+  let currentBackendUrl = 'http://localhost:3001';
+
+  async function getBackendUrl() {
+    return new Promise((resolve) => {
+      chrome.storage.local.get(['config'], (data) => {
+        if (data && data.config && data.config.backendUrl) {
+          currentBackendUrl = data.config.backendUrl.replace(/\/+$/, '');
+        }
+        resolve(currentBackendUrl);
+      });
+    });
+  }
+
   async function checkAuthStatus() {
     try {
-      const resp = await fetch('http://localhost:3001/api/auth/status');
+      const baseUrl = await getBackendUrl();
+      const resp = await fetch(`${baseUrl}/api/auth/status`, { signal: AbortSignal.timeout(3500) });
       if (resp.ok) {
         const data = await resp.json();
         if (data.authenticated && data.user) {
@@ -309,12 +323,19 @@ document.addEventListener('DOMContentLoaded', async () => {
     btnGoogleLogin.addEventListener('click', async () => {
       showToast('🌐 Opening Google / ChatGPT Login...');
       try {
-        const resp = await fetch('http://localhost:3001/api/auth/login', { method: 'POST' });
+        const baseUrl = await getBackendUrl();
+        const resp = await fetch(`${baseUrl}/api/auth/login`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          signal: AbortSignal.timeout(8000)
+        });
         if (resp.ok) {
           const resData = await resp.json();
           if (resData.authUrl) {
             chrome.tabs.create({ url: resData.authUrl });
           }
+        } else {
+          showToast('⚠️ Backend server returned error. Check terminal.');
         }
         let attempts = 0;
         const pollTimer = setInterval(async () => {
@@ -329,7 +350,7 @@ document.addEventListener('DOMContentLoaded', async () => {
           }
         }, 1500);
       } catch (err) {
-        showToast('⚠️ Could not start login. Ensure backend is running.');
+        showToast('⚠️ Backend offline. Please start "node server.js" first!');
       }
     });
   }
@@ -338,7 +359,12 @@ document.addEventListener('DOMContentLoaded', async () => {
     btnReAuth.addEventListener('click', async () => {
       showToast('🌐 Switching / Refreshing ChatGPT account...');
       try {
-        const resp = await fetch('http://localhost:3001/api/auth/login', { method: 'POST' });
+        const baseUrl = await getBackendUrl();
+        const resp = await fetch(`${baseUrl}/api/auth/login`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          signal: AbortSignal.timeout(8000)
+        });
         if (resp.ok) {
           const resData = await resp.json();
           if (resData.authUrl) {
@@ -358,7 +384,7 @@ document.addEventListener('DOMContentLoaded', async () => {
           }
         }, 1500);
       } catch (err) {
-        showToast('⚠️ Could not start login. Ensure backend is running.');
+        showToast('⚠️ Backend offline. Please start "node server.js" first!');
       }
     });
   }
