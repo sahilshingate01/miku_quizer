@@ -94,13 +94,13 @@ let lastOAuthCheck = 0;
 
 async function isOpenAIOAuthAvailable(force = false) {
   const now = Date.now();
-  if (!force && now - lastOAuthCheck < 15000) {
+  if (!force && now - lastOAuthCheck < 5000) {
     return cachedOAuthAvailable;
   }
   try {
     const resp = await fetch(`${OPENAI_OAUTH_URL}/models`, {
       method: 'GET',
-      signal: AbortSignal.timeout(1200)
+      signal: AbortSignal.timeout(4000)
     });
     cachedOAuthAvailable = resp.ok;
     lastOAuthCheck = now;
