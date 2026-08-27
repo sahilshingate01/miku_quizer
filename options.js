@@ -77,7 +77,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     showExplanationInput.checked = config.showExplanation !== false;
     autoSelectInput.checked = config.autoSelect !== false;
     autoAdvanceInput.checked = Boolean(config.autoAdvance);
-    if (advanceDelaySecondsInput) advanceDelaySecondsInput.value = String(config.advanceDelaySeconds || '2.5');
+    if (advanceDelaySecondsInput) advanceDelaySecondsInput.value = String(config.advanceDelaySeconds || '3.5');
     panelPositionSelect.value = config.panelPosition || 'top-right';
     cacheEnabledInput.checked = config.cacheEnabled !== false;
 

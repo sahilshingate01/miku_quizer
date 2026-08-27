@@ -329,12 +329,12 @@
           }
         }, 500);
 
-        // 2. Auto-advance to next question (total ~2.5s) if enabled and not final question
+        // 2. Auto-advance to next question (3.5s) if enabled and not final question
         const isLastQuestion = detected.totalQuestions && detected.questionNumber && (detected.questionNumber >= detected.totalQuestions);
         if (advanceTimeout) clearTimeout(advanceTimeout);
 
         if (currentConfig?.autoAdvance !== false && !isLastQuestion) {
-          const delaySec = Math.max(0.5, parseFloat(currentConfig?.advanceDelaySeconds) || 2.5);
+          const delaySec = Math.max(0.5, parseFloat(currentConfig?.advanceDelaySeconds) || 3.5);
           console.log(`[Miku Quizer] Auto-advancing in ${delaySec}s...`);
 
           if (floatingPanel) {

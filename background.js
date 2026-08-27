@@ -11,7 +11,7 @@ const DEFAULT_CONFIG = {
   highlightOption: false,
   autoSelect: true,
   autoAdvance: true,
-  advanceDelaySeconds: 2.5,
+  advanceDelaySeconds: 3.5,
   assistantActive: true,
   panelPosition: 'top-right',
   cacheEnabled: true,
@@ -30,6 +30,14 @@ chrome.runtime.onInstalled.addListener(async () => {
   const data = await chrome.storage.local.get(['config', 'stats', 'quizCache']);
   if (!data.config) {
     await chrome.storage.local.set({ config: DEFAULT_CONFIG });
+  } else {
+    const updated = {
+      ...DEFAULT_CONFIG,
+      ...data.config,
+      advanceDelaySeconds: 3.5,
+      model: 'gpt-5.4'
+    };
+    await chrome.storage.local.set({ config: updated });
   }
   if (!data.stats) {
     await chrome.storage.local.set({ stats: DEFAULT_STATS });
