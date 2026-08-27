@@ -136,11 +136,8 @@ document.addEventListener('DOMContentLoaded', async () => {
     currentSiteName.textContent = 'Active Tab';
   }
 
-  // Trigger initial scan & load stats
+  // Load stats
   refreshStats();
-  if (activeTabId && currentHost && !currentHost.startsWith('chrome')) {
-    triggerActiveTabScan(false);
-  }
 
   function updateSiteToggleButton(disabledSites) {
     const isSiteDisabled = currentHost && disabledSites.includes(currentHost);
