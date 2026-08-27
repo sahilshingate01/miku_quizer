@@ -134,57 +134,45 @@ class QuizExtractor {
    * Extract option text and element from a card container or option item.
    */
   extractOptionData(optCard, index) {
-    const fallbackLabel = String.fromCharCode(65 + index);
+    const expectedLabel = String.fromCharCode(65 + index);
     if (!optCard) return null;
     if (this.isInsideSidebarOrList(optCard)) return null;
 
-    // Check for child badge with option letter (e.g. Newton School [A] box)
+    // 1. Check for child badge with option letter
     const childNodes = Array.from(optCard.querySelectorAll('div, span, b, strong, p, button'));
     let badgeEl = null;
-    let badgeLabel = '';
 
     for (const child of childNodes) {
-      const text = this.cleanText(child.innerText || child.textContent);
-      if (/^[A-H1-9]$/i.test(text)) {
+      const text = this.cleanText(child.innerText || child.textContent).toUpperCase();
+      if (text === expectedLabel || text === `${expectedLabel}.` || text === `${expectedLabel})` || text === `(${expectedLabel})`) {
         badgeEl = child;
-        badgeLabel = text.toUpperCase();
         break;
       }
     }
 
-    if (badgeEl && badgeLabel) {
-      let text = '';
+    // 2. Find the option text
+    let text = '';
+    if (badgeEl) {
       for (const child of childNodes) {
         if (child === badgeEl || badgeEl.contains(child) || child.contains(badgeEl)) continue;
         const cText = this.cleanText(child.innerText || child.textContent);
-        if (cText && cText.length > text.length && !this.isIgnoredText(cText)) {
+        if (cText && cText.length > text.length && !this.isIgnoredText(cText) && cText.toUpperCase() !== expectedLabel) {
           text = cText;
         }
       }
-
-      if (!text) {
-        const full = this.cleanText(optCard.innerText || optCard.textContent);
-        const parsed = this.splitOptionLabel(full, index);
-        text = parsed.text;
-      }
-
-      if (text && !this.isIgnoredText(text)) {
-        return {
-          label: badgeLabel,
-          text,
-          element: optCard
-        };
-      }
     }
 
-    // Direct card text
-    const fullText = this.cleanText(optCard.innerText || optCard.textContent);
-    if (!fullText || this.isIgnoredText(fullText)) return null;
+    if (!text) {
+      const full = this.cleanText(optCard.innerText || optCard.textContent);
+      const parsed = this.splitOptionLabel(full, index);
+      text = parsed.text;
+    }
 
-    const { label, text } = this.splitOptionLabel(fullText, index);
+    if (!text || this.isIgnoredText(text)) return null;
+
     return {
-      label,
-      text,
+      label: expectedLabel,
+      text: text.trim(),
       element: optCard
     };
   }

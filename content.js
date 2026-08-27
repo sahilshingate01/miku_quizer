@@ -119,14 +119,11 @@
     return false;
   }
 
-  /**
-   * Selects the suggested option on the webpage without duplicate clicks.
-   */
   function selectSuggestedOption(answerLabel) {
     if (!currentDetectedQuestion || !currentDetectedQuestion.options) return false;
     const qHash = hashQuestion(currentDetectedQuestion.question, currentDetectedQuestion.options);
 
-    // Guard: Prevent double-clicking / toggle de-selecting the same question
+    // Guard: Prevent duplicate clicks on the same question
     if (lastSelectedQuestionHash === qHash) {
       console.log('[Miku Quizer] Option already selected for this question, skipping repeat click.');
       return true;
@@ -135,12 +132,14 @@
     const label = String(answerLabel || lastSolvedResult?.answer || '').trim().toUpperCase();
     if (!label) return false;
 
-    // 1. Try matching label (e.g. "C")
+    console.log(`[Miku Quizer] 🎯 Target AI Answer: [${label}]`);
+
+    // 1. Match by label (A, B, C, D)
     let matchedOpt = currentDetectedQuestion.options.find(
       o => String(o.label).trim().toUpperCase() === label
     );
 
-    // 2. Fallback: match by letter index (A=0, B=1, C=2, D=3...)
+    // 2. Match by index fallback (A=0, B=1, C=2, D=3...)
     if (!matchedOpt && label.length === 1 && label >= 'A' && label <= 'Z') {
       const idx = label.charCodeAt(0) - 65;
       if (idx >= 0 && idx < currentDetectedQuestion.options.length) {
@@ -149,15 +148,9 @@
     }
 
     if (matchedOpt && matchedOpt.element) {
-      if (isElementAlreadySelected(matchedOpt.element)) {
-        console.log('[Miku Quizer] Option DOM is already in selected state.');
-        lastSelectedQuestionHash = qHash;
-        return true;
-      }
-
       safelyClickElement(matchedOpt.element);
       lastSelectedQuestionHash = qHash;
-      console.log('[Miku Quizer] Selected option:', label, matchedOpt.text);
+      console.log(`[Miku Quizer] ✅ Successfully clicked option [${label}]:`, matchedOpt.text);
       return true;
     }
 
