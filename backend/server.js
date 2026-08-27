@@ -9,6 +9,15 @@ import { runOpenAIOAuthLogin, startOpenAIOAuthServer } from 'openai-oauth';
 
 dotenv.config();
 
+// Global crash protection for graceful error handling
+process.on('uncaughtException', (err) => {
+  console.warn('[Miku Quizer] Handled uncaughtException:', err.message);
+});
+
+process.on('unhandledRejection', (reason) => {
+  console.warn('[Miku Quizer] Handled unhandledRejection:', reason?.message || reason);
+});
+
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
@@ -210,7 +219,7 @@ async function triggerOAuthLogin() {
     console.warn('[Miku Quizer OAuth] ⚠️ Login note:', err.message);
     activeLoginPromise = null;
     currentAuthUrl = null;
-    throw err;
+    return null;
   });
 
   // Give brief moment for auth URL to generate
