@@ -53,30 +53,27 @@
 
 ## 🚀 Quick Start Guide
 
-### 1. Install Backend Dependencies
+### ⚡ 1-Click Launch (Recommended)
+
+* **macOS**: Double-click `start.command` in Finder *(if prompted by Gatekeeper, **Right-Click ➔ Open**, or run `npm start` in Terminal)*.
+* **Windows**: Double-click `start.bat` *(if prompted by SmartScreen, click **More info ➔ Run anyway**)*.
+* **Any OS (Terminal)**: Run `npm start` directly in the project root!
+
+---
+
+### 🛠️ Manual Start (Optional)
 
 ```bash
 cd backend
 npm install
-```
-
-### 2. Configure Environment
-
-Copy `.env.example` to `.env`:
-
-```bash
-cp .env.example .env
-```
-
-### 3. Start Backend Server
-
-```bash
 node server.js
 ```
 
-The backend will automatically connect to your local OpenAI OAuth proxy (`http://127.0.0.1:10531/v1`) or fall back to Groq.
+The backend will automatically start and connect to your local OpenAI OAuth proxy (`http://127.0.0.1:10531/v1`).
 
-### 4. Load the Chrome Extension
+---
+
+### 🧩 Load the Chrome Extension
 
 1. Open Google Chrome and navigate to `chrome://extensions/`.
 2. Enable **Developer mode** in the top-right corner.
