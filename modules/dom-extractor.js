@@ -84,25 +84,18 @@ class QuizExtractor {
    */
   isInsideSidebarOrList(el) {
     if (!el || el === document.body) return false;
-    const sidebar = el.closest('aside, nav, [class*="sidebar"], [class*="drawer"], [class*="palette"], [class*="question-list"], [class*="nav-list"]');
-    if (sidebar) return true;
-
-    // Check if container contains multiple question items (Q1., Q2., Q3...)
-    let parent = el.parentElement;
-    let depth = 0;
-    while (parent && parent !== document.body && depth < 5) {
-      const items = parent.querySelectorAll('div, li, a, button');
-      let qCount = 0;
-      for (const item of items) {
-        const txt = this.cleanText(item.innerText || item.textContent);
-        if (/^Q\d+[\.\:\s]/i.test(txt)) {
-          qCount++;
-          if (qCount >= 2) return true;
-        }
-      }
-      parent = parent.parentElement;
-      depth++;
+    
+    // Check if directly inside a sidebar, drawer, or navigation element
+    if (el.closest('aside, nav, [class*="sidebar"], [class*="drawer"], [class*="palette"], [class*="question-list"]')) {
+      return true;
     }
+
+    // Check if element is a question item list entry (e.g. "Q1. An HR manager...")
+    const directText = (el.innerText || el.textContent || '').trim();
+    if (/^Q\d+[\.\:\s]/i.test(directText) && directText.length < 70 && !directText.toLowerCase().includes('question ')) {
+      return true;
+    }
+
     return false;
   }
 
@@ -508,11 +501,141 @@ class QuizExtractor {
   }
 
   /**
+   * Strategy 0: Direct Newton School / Classroom / Modal Assessment Engine
+   */
+  detectNewtonSchoolQuiz() {
+    // 1. Find all visible "Question X" header elements
+    const allHeaders = Array.from(document.querySelectorAll('div, span, h1, h2, h3, h4, h5, p, b, strong')).filter(el => {
+      if (!this.isVisible(el)) return false;
+      if (el.children.length > 2) return false;
+      if (this.isInsideSidebarOrList(el)) return false;
+      const t = this.cleanText(el.innerText || el.textContent);
+      return /^Question\s+\d+$/i.test(t);
+    });
+
+    if (allHeaders.length === 0) return null;
+
+    const headerEl = allHeaders[0];
+    const headerText = this.cleanText(headerEl.innerText || headerEl.textContent);
+    const qNumMatch = headerText.match(/Question\s+(\d+)/i);
+    const qNum = qNumMatch ? parseInt(qNumMatch[1], 10) : null;
+
+    // Walk up to find the active question container that contains option badges
+    let mainContainer = headerEl.parentElement;
+    let depth = 0;
+    while (mainContainer && mainContainer !== document.body && depth < 6) {
+      const aBadges = Array.from(mainContainer.querySelectorAll('div, span, button, b, strong')).filter(
+        c => this.isVisible(c) && this.cleanText(c.innerText || c.textContent) === 'A' && !this.isInsideSidebarOrList(c)
+      );
+      if (aBadges.length >= 1) break;
+      mainContainer = mainContainer.parentElement;
+      depth++;
+    }
+
+    if (!mainContainer) return null;
+
+    // Find the option A badge in the main container
+    const aBadges = Array.from(mainContainer.querySelectorAll('div, span, button, b, strong')).filter(
+      c => this.isVisible(c) && this.cleanText(c.innerText || c.textContent) === 'A' && !this.isInsideSidebarOrList(c)
+    );
+
+    if (aBadges.length === 0) return null;
+    const aBadge = aBadges[0];
+
+    // Find the option card wrapping badge A
+    let aCard = aBadge;
+    let cDepth = 0;
+    while (aCard && aCard.parentElement && aCard.parentElement !== mainContainer && cDepth < 4) {
+      if (aCard.parentElement.children.length >= 2 && aCard.parentElement.children.length <= 8) {
+        break;
+      }
+      aCard = aCard.parentElement;
+      cDepth++;
+    }
+
+    const optionsParent = aCard?.parentElement;
+    if (!optionsParent) return null;
+
+    // Extract options from optionsParent children
+    const optionCards = Array.from(optionsParent.children).filter(c => this.isVisible(c));
+    if (optionCards.length < 2) return null;
+
+    const extractedOptions = [];
+    const seenTexts = new Set();
+    const seenLabels = new Set();
+
+    optionCards.forEach((card, idx) => {
+      const opt = this.extractOptionData(card, idx);
+      if (opt && opt.text && !this.isIgnoredText(opt.text) && !seenTexts.has(opt.text.toLowerCase())) {
+        seenLabels.add(opt.label);
+        seenTexts.add(opt.text.toLowerCase());
+        extractedOptions.push(opt);
+      }
+    });
+
+    if (extractedOptions.length < 2) return null;
+
+    // Extract prompt text: collect text from preceding siblings of optionsParent
+    let questionText = '';
+    let prev = optionsParent.previousElementSibling;
+    const promptParts = [];
+    while (prev && prev !== headerEl) {
+      if (this.isVisible(prev) && !prev.contains(headerEl)) {
+        const t = this.cleanText(prev.innerText || prev.textContent);
+        if (t && !this.isIgnoredText(t)) {
+          promptParts.unshift(t);
+        }
+      }
+      prev = prev.previousElementSibling;
+    }
+
+    if (promptParts.length > 0) {
+      questionText = promptParts.join('\n');
+    } else {
+      const texts = Array.from(mainContainer.querySelectorAll('div, p, span')).filter(el => {
+        if (!this.isVisible(el) || el.contains(headerEl) || headerEl.contains(el) || optionsParent.contains(el)) return false;
+        if (el.children.length > 4) return false;
+        const t = this.cleanText(el.innerText || el.textContent);
+        return t.length > 8 && !this.isIgnoredText(t);
+      });
+      if (texts.length > 0) {
+        questionText = this.cleanText(texts[0].innerText || texts[0].textContent);
+      }
+    }
+
+    // Auto-detect total question count from sidebar/palette
+    let totalQuestions = null;
+    let maxQ = 0;
+    const allItems = document.querySelectorAll('div, li, a, button, span');
+    for (const item of allItems) {
+      const txt = (item.innerText || item.textContent || '').trim();
+      const m = txt.match(/^Q(\d+)[\.\:\s]/i);
+      if (m) {
+        const num = parseInt(m[1], 10);
+        if (num > maxQ && num <= 100) maxQ = num;
+      }
+    }
+    if (maxQ >= 2) totalQuestions = maxQ;
+
+    if (questionText && extractedOptions.length >= 2) {
+      return {
+        strategy: 'newton-classroom-modal',
+        questionNumber: qNum,
+        totalQuestions,
+        question: questionText,
+        options: extractedOptions
+      };
+    }
+
+    return null;
+  }
+
+  /**
    * Main entry point to extract the current visible quiz question.
    */
   extractQuizQuestion() {
-    // Strategy 2 (Question Header Proximity) is most accurate for structured LMS/Newton portals
     const result =
+      this.detectNewtonSchoolQuiz() ||
       this.detectByQuestionHeader() ||
       this.detectByOptionClusters() ||
       this.detectByRadioInputs();
