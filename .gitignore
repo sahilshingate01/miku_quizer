@@ -1,0 +1,18 @@
+# Dependencies
+node_modules/
+backend/node_modules/
+.package-lock.json
+package-lock.json
+
+# Environment Variables & Secrets
+.env
+backend/.env
+*.env
+*.env.local
+
+# Logs and system artifacts
+*.log
+.DS_Store
+Thumbs.db
+.planning/
+scratch/

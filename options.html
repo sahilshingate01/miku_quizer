@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Miku Quizer - Settings & Preferences</title>
+  <link rel="stylesheet" href="options.css">
+</head>
+<body>
+  <div class="container">
+    <!-- Header -->
+    <header class="header">
+      <div class="brand">
+        <div class="avatar-ring">
+          <div class="avatar-core">39</div>
+        </div>
+        <div>
+          <h1>Miku Quizer Settings</h1>
+          <p class="subtitle">Configure AI model, backend endpoint, and assistant HUD preferences</p>
+        </div>
+      </div>
+    </header>
+
+    <main class="settings-form">
+      <!-- Backend & AI Section -->
+      <section class="settings-card">
+        <div class="card-header">
+          <div class="icon">🤖</div>
+          <div>
+            <h2>AI Proxy & Connection</h2>
+            <p>Connect to your local or remote Miku Quizer backend service</p>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label for="backendUrl">Backend Proxy URL</label>
+          <div class="input-with-action">
+            <input type="url" id="backendUrl" placeholder="http://localhost:3001" spellcheck="false" required>
+            <button type="button" class="btn btn-secondary" id="btn-test-conn">Test Connection</button>
+          </div>
+          <span class="field-hint" id="conn-status-msg">Default is http://localhost:3001</span>
+        </div>
+
+        <div class="form-group">
+          <label for="modelSelect">AI Reasoning Model</label>
+          <div class="input-with-action">
+            <select id="modelSelect">
+              <option value="gpt-5.4" selected>gpt-5.4 (OpenAI OAuth - Highest Accuracy)</option>
+              <option value="gpt-5.5">gpt-5.5 (OpenAI OAuth - Advanced Reasoning)</option>
+              <option value="gpt-5.6-terra">gpt-5.6-terra (OpenAI OAuth)</option>
+              <option value="openai/gpt-oss-120b">openai/gpt-oss-120b (Groq)</option>
+              <option value="qwen/qwen3.8-27b">qwen/qwen3.8-27b (Groq)</option>
+              <option value="openai/gpt-oss-20b">openai/gpt-oss-20b (Groq - Fast)</option>
+            </select>
+            <button type="button" class="btn btn-secondary" id="btn-fetch-models" title="Fetch latest models from backend">Refresh List</button>
+          </div>
+          <span class="field-hint">Select the reasoning model used for quiz analysis.</span>
+        </div>
+      </section>
+
+      <!-- Assistant Display & Behavior Section -->
+      <section class="settings-card">
+        <div class="card-header">
+          <div class="icon">✨</div>
+          <div>
+            <h2>Assistant HUD & Highlighting</h2>
+            <p>Customize floating panel behavior and visual assistance</p>
+          </div>
+        </div>
+
+        <div class="switch-row">
+          <div>
+            <div class="switch-title">Highlight Suggested Option (Visual Outline)</div>
+            <div class="switch-desc">Add visual border and suggestion badge to the likely answer</div>
+          </div>
+          <label class="switch">
+            <input type="checkbox" id="highlightOption">
+            <span class="slider"></span>
+          </label>
+        </div>
+
+        <div class="switch-row">
+          <div>
+            <div class="switch-title">Show Confidence Meter</div>
+            <div class="switch-desc">Display the AI confidence percentage score (0-100%)</div>
+          </div>
+          <label class="switch">
+            <input type="checkbox" id="showConfidence" checked>
+            <span class="slider"></span>
+          </label>
+        </div>
+
+        <div class="switch-row">
+          <div>
+            <div class="switch-title">Show "Why?" Explanation</div>
+            <div class="switch-desc">Provide concise pedagogical explanations for why the answer is correct</div>
+          </div>
+          <label class="switch">
+            <input type="checkbox" id="showExplanation" checked>
+            <span class="slider"></span>
+          </label>
+        </div>
+
+        <div class="switch-row">
+          <div>
+            <div class="switch-title">⚡ Auto-Select Suggested Answer</div>
+            <div class="switch-desc">Automatically click and select the suggested option on the quiz page when detected</div>
+          </div>
+          <label class="switch">
+            <input type="checkbox" id="autoSelect" checked>
+            <span class="slider"></span>
+          </label>
+        </div>
+
+        <div class="switch-row">
+          <div>
+            <div class="switch-title">⏩ Auto-Advance (Next Question)</div>
+            <div class="switch-desc">Automatically click "Next >" after selecting the answer (Never auto-submits final quiz)</div>
+          </div>
+          <label class="switch">
+            <input type="checkbox" id="autoAdvance" checked>
+            <span class="slider"></span>
+          </label>
+        </div>
+
+        <div class="form-group" style="margin-top: 14px;">
+          <label for="advanceDelaySeconds">⏱️ Pacing Speed (Delay Before Next Question)</label>
+          <select id="advanceDelaySeconds">
+            <option value="2.5" selected>2.5 seconds (Recommended — Natural & Safe)</option>
+            <option value="1.5">1.5 seconds (Fast)</option>
+            <option value="3.5">3.5 seconds (Relaxed)</option>
+            <option value="5.0">5.0 seconds (Safe for Proctoring)</option>
+            <option value="1.0">1.0 second (Ultra Fast)</option>
+          </select>
+          <span class="field-hint">Time spent on each question before automatically clicking Next.</span>
+        </div>
+
+        <div class="form-group" style="margin-top: 14px;">
+          <label for="panelPosition">Default Floating Panel Position</label>
+          <select id="panelPosition">
+            <option value="top-right">Top Right (Recommended)</option>
+            <option value="bottom-right">Bottom Right</option>
+            <option value="top-left">Top Left</option>
+            <option value="bottom-left">Bottom Left</option>
+          </select>
+          <span class="field-hint">You can also drag the floating HUD anywhere on screen anytime.</span>
+        </div>
+
+        <div class="switch-row" style="margin-top: 14px;">
+          <div>
+            <div class="switch-title">Enable Local Question Cache</div>
+            <div class="switch-desc">Instantly reuse solved answers if the exact same question is encountered again</div>
+          </div>
+          <label class="switch">
+            <input type="checkbox" id="cacheEnabled" checked>
+            <span class="slider"></span>
+          </label>
+        </div>
+      </section>
+
+      <!-- Site Exclusions Section -->
+      <section class="settings-card">
+        <div class="card-header">
+          <div class="icon">🛡️</div>
+          <div>
+            <h2>Site Exclusions</h2>
+            <p>Websites where Miku Quizer should be disabled</p>
+          </div>
+        </div>
+
+        <div class="disabled-sites-box">
+          <div class="add-site-row">
+            <input type="text" id="newSiteInput" placeholder="e.g. exams.university.edu">
+            <button type="button" class="btn btn-secondary" id="btn-add-site">Add Site</button>
+          </div>
+          <div class="sites-chip-list" id="sites-list">
+            <!-- Rendered dynamically -->
+          </div>
+        </div>
+      </section>
+
+      <!-- Action Bar -->
+      <div class="action-bar">
+        <button type="button" class="btn btn-muted" id="btn-reset">Reset to Defaults</button>
+        <div class="right-actions">
+          <span class="save-status" id="save-status"></span>
+          <button type="submit" class="btn btn-primary" id="btn-save">Save Settings</button>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <script src="options.js"></script>
+</body>
+</html>
