@@ -12,7 +12,7 @@ const DEFAULT_CONFIG = {
   autoSelect: true,
   autoAdvance: true,
   advanceDelaySeconds: 3.5,
-  assistantActive: true,
+  assistantActive: false,
   panelPosition: 'top-right',
   cacheEnabled: true,
   disabledSites: []
@@ -34,6 +34,7 @@ chrome.runtime.onInstalled.addListener(async () => {
     const updated = {
       ...DEFAULT_CONFIG,
       ...data.config,
+      assistantActive: false,
       advanceDelaySeconds: 3.5,
       model: 'gpt-5.4'
     };

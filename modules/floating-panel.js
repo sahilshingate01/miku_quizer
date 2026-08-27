@@ -46,7 +46,7 @@ class FloatingPanel {
     this.rootContainer.style.zIndex = '2147483647';
     this.rootContainer.style.top = '0';
     this.rootContainer.style.left = '0';
-    this.rootContainer.style.display = 'block';
+    this.rootContainer.style.display = 'none';
     this.rootContainer.style.pointerEvents = 'none';
 
     this.shadowRoot = this.rootContainer.attachShadow({ mode: 'open' });
@@ -256,6 +256,7 @@ class FloatingPanel {
     this.state.result = null;
     this.state.errorMsg = null;
     this.renderBody();
+    this.hide();
   }
 
   setDetected(meta) {
@@ -264,6 +265,7 @@ class FloatingPanel {
     this.state.result = null;
     this.state.errorMsg = null;
     this.renderBody();
+    this.show();
   }
 
   setThinking(meta) {
@@ -272,6 +274,7 @@ class FloatingPanel {
     this.state.result = null;
     this.state.errorMsg = null;
     this.renderBody();
+    this.show();
   }
 
   setReady(result, meta) {
@@ -280,6 +283,7 @@ class FloatingPanel {
     this.state.questionMeta = meta;
     this.state.errorMsg = null;
     this.renderBody();
+    this.show();
   }
 
   setError(errorMsg, meta) {
@@ -287,6 +291,7 @@ class FloatingPanel {
     this.state.errorMsg = errorMsg;
     this.state.questionMeta = meta;
     this.renderBody();
+    this.show();
   }
 
   /**

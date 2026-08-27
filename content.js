@@ -587,11 +587,11 @@
       }
     }, true);
 
-    // Start assistant if active in config
-    if (config.assistantActive !== false) {
+    // Default to dormant and hidden on page load
+    if (config.assistantActive === true) {
       activateAssistant();
     } else {
-      floatingPanel.hide();
+      deactivateAssistant();
     }
   }
 
