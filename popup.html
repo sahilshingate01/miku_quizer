@@ -4,6 +4,9 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Miku Quizer</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@500;600;700;800;900&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="popup.css">
 </head>
 <body>
@@ -15,14 +18,19 @@
           <div class="avatar-core">39</div>
         </div>
         <div class="title-group">
-          <h1>Miku Quizer</h1>
+          <h1><span class="brand-miku">Miku</span> <span class="brand-quizer">Quizer</span></h1>
           <div class="status-badge" id="status-badge">
             <span class="status-dot" id="status-dot"></span>
-            <span class="status-text" id="status-text">Checking...</span>
+            <span class="status-text" id="status-text">Connected (Proxy)</span>
           </div>
         </div>
       </div>
-      <button class="icon-btn" id="btn-options" title="Open Settings">⚙️</button>
+      <button class="icon-btn" id="btn-options" title="Open Settings">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="12" r="3"></circle>
+          <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
+        </svg>
+      </button>
     </header>
 
     <!-- Google / ChatGPT OAuth Login Card -->
@@ -35,7 +43,7 @@
         </div>
       </div>
       <button class="btn btn-google-login" id="btn-google-login">
-        <svg class="google-icon" viewBox="0 0 24 24" width="15" height="15">
+        <svg class="google-icon" viewBox="0 0 24 24" width="16" height="16">
           <path fill="#EA4335" d="M12 5c1.7 0 3 .7 3.9 1.5l2.9-2.9C17 1.9 14.7 1 12 1 7.5 1 3.7 3.6 1.9 7.3l3.7 2.9C6.5 7.4 9 5 12 5z"/>
           <path fill="#4285F4" d="M23.5 12.3c0-.8-.1-1.6-.2-2.3H12v4.5h6.5c-.3 1.5-1.1 2.8-2.4 3.7l3.7 2.9c2.2-2 3.7-5 3.7-8.8z"/>
           <path fill="#FBBC05" d="M5.6 14.8c-.2-.7-.4-1.5-.4-2.3s.2-1.6.4-2.3L1.9 7.3C.7 9.7 0 12.3 0 15.2c0 2.8.7 5.5 1.9 7.8l3.7-2.9z"/>
@@ -46,80 +54,201 @@
     </div>
 
     <!-- Authenticated User Profile Bar -->
-    <div class="user-profile-bar" id="user-profile-bar" style="display: none;">
+    <div class="user-profile-bar" id="user-profile-bar" style="display: flex;">
       <div class="user-profile-info">
-        <div class="user-avatar-badge">👤</div>
+        <div class="user-avatar-badge">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+            <circle cx="12" cy="7" r="4"></circle>
+          </svg>
+        </div>
         <div class="user-profile-details">
-          <div class="user-profile-email" id="user-profile-email">Connecting...</div>
-          <div class="user-profile-status">🟢 GPT-5.4 OAuth Connected</div>
+          <div class="user-profile-email" id="user-profile-email">sahilshingate7@gmail.com</div>
+          <div class="user-profile-status">
+            <span class="status-dot-mini"></span>
+            <span>GPT-5.4 OAuth Connected</span>
+          </div>
         </div>
       </div>
-      <button class="btn-auth-action" id="btn-re-auth" title="Re-authenticate">🔄</button>
+      <button class="btn-auth-action" id="btn-re-auth" title="Refresh Session">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"/>
+        </svg>
+      </button>
     </div>
 
-    <!-- Master Assistant Activation Switch -->
+    <!-- Master Assistant Activation Button -->
     <div class="activation-card" id="activation-card">
       <button class="btn btn-activate" id="btn-toggle-assistant">
-        <span id="activate-icon">⚡</span>
-        <span id="activate-text">Start Assistant on Tab</span>
+        <span class="activate-icon-left" id="activate-icon">⚡</span>
+        <span class="activate-label" id="activate-text">Start Assistant on Tab</span>
+        <span class="activate-sparkles">✨</span>
       </button>
     </div>
 
     <!-- Metrics Cards Grid -->
     <section class="stats-grid">
-      <div class="stat-card">
-        <div class="stat-icon">🔍</div>
-        <div class="stat-value" id="stat-detected">0</div>
-        <div class="stat-label">Detected</div>
+      <!-- Detected Card -->
+      <div class="stat-card stat-card-detected">
+        <div class="stat-icon-wrapper stat-icon-detected">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="11" cy="11" r="8"></circle>
+            <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+          </svg>
+        </div>
+        <div class="stat-value stat-val-detected" id="stat-detected">408</div>
+        <div class="stat-label">DETECTED</div>
+        <div class="stat-wave stat-wave-detected">
+          <svg viewBox="0 0 100 24" preserveAspectRatio="none" fill="none">
+            <path d="M0 18 Q 20 6, 40 14 T 80 10 T 100 8" stroke="#818CF8" stroke-width="2.5" stroke-linecap="round" fill="none"/>
+          </svg>
+        </div>
       </div>
-      <div class="stat-card">
-        <div class="stat-icon">🤖</div>
-        <div class="stat-value" id="stat-requests">0</div>
-        <div class="stat-label">AI Queries</div>
+
+      <!-- AI Queries Card -->
+      <div class="stat-card stat-card-queries">
+        <div class="stat-icon-wrapper stat-icon-queries">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="3" y="11" width="18" height="10" rx="2"></rect>
+            <circle cx="12" cy="5" r="2"></circle>
+            <path d="M12 7v4"></path>
+            <line x1="8" y1="16" x2="8" y2="16"></line>
+            <line x1="16" y1="16" x2="16" y2="16"></line>
+          </svg>
+        </div>
+        <div class="stat-value stat-val-queries" id="stat-requests">235</div>
+        <div class="stat-label">AI QUERIES</div>
+        <div class="stat-wave stat-wave-queries">
+          <svg viewBox="0 0 100 24" preserveAspectRatio="none" fill="none">
+            <path d="M0 16 Q 25 18, 50 10 T 80 14 T 100 12" stroke="#FBBF24" stroke-width="2.5" stroke-linecap="round" fill="none"/>
+          </svg>
+        </div>
       </div>
-      <div class="stat-card">
-        <div class="stat-icon">⚡</div>
-        <div class="stat-value" id="stat-cache">0</div>
-        <div class="stat-label">Cached</div>
+
+      <!-- Cached Card -->
+      <div class="stat-card stat-card-cached">
+        <div class="stat-icon-wrapper stat-icon-cached">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+            <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon>
+          </svg>
+        </div>
+        <div class="stat-value stat-val-cached" id="stat-cache">0</div>
+        <div class="stat-label">CACHED</div>
+        <div class="stat-wave stat-wave-cached">
+          <svg viewBox="0 0 100 24" preserveAspectRatio="none" fill="none">
+            <path d="M0 16 Q 20 12, 45 16 T 85 10 T 100 12" stroke="#34D399" stroke-width="2.5" stroke-linecap="round" fill="none"/>
+          </svg>
+        </div>
       </div>
     </section>
 
-    <!-- Current Question Snippet -->
+    <!-- Live Question Card -->
     <section class="card question-card">
       <div class="card-header">
-        <span class="card-title">Live Question</span>
-        <span class="q-tag" id="live-q-badge">None</span>
+        <div class="card-header-left">
+          <span class="live-pulse-icon">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#6366F1" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M4.9 19.1C1 15.2 1 8.8 4.9 4.9"></path>
+              <path d="M7.8 16.2c-2.3-2.3-2.3-6.1 0-8.5"></path>
+              <circle cx="12" cy="12" r="2" fill="#6366F1"></circle>
+              <path d="M16.2 7.8c2.3 2.3 2.3 6.1 0 8.5"></path>
+              <path d="M19.1 4.9C23 8.8 23 15.2 19.1 19.1"></path>
+            </svg>
+          </span>
+          <span class="card-title">LIVE QUESTION</span>
+        </div>
+        <span class="q-tag" id="live-q-badge">Q 6/12</span>
       </div>
-      <div class="q-snippet" id="live-q-text">
-        No active quiz question detected on the current tab.
+
+      <div class="question-body-row">
+        <div class="q-snippet" id="live-q-text">
+          In a typical Node.js http server, what response is commonly sent when no route matches the...
+        </div>
+        <div class="q-illustration">
+          <svg width="56" height="56" viewBox="0 0 100 100" fill="none">
+            <defs>
+              <linearGradient id="cubeTop" x1="0" y1="0" x2="100" y2="100" gradientUnits="userSpaceOnUse">
+                <stop stop-color="#E0E7FF"/>
+                <stop offset="1" stop-color="#C7D2FE"/>
+              </linearGradient>
+              <linearGradient id="cubeLeft" x1="0" y1="0" x2="100" y2="100" gradientUnits="userSpaceOnUse">
+                <stop stop-color="#A5B4FC"/>
+                <stop offset="1" stop-color="#818CF8"/>
+              </linearGradient>
+              <linearGradient id="cubeRight" x1="0" y1="0" x2="100" y2="100" gradientUnits="userSpaceOnUse">
+                <stop stop-color="#818CF8"/>
+                <stop offset="1" stop-color="#6366F1"/>
+              </linearGradient>
+              <filter id="cubeShadow" x="10" y="55" width="80" height="40" filterUnits="userSpaceOnUse">
+                <feGaussianBlur stdDeviation="8"/>
+              </filter>
+            </defs>
+            <ellipse cx="50" cy="78" rx="30" ry="10" fill="#6366F1" fill-opacity="0.18" filter="url(#cubeShadow)"/>
+            <!-- 3D Cube Top -->
+            <polygon points="50,18 78,32 50,46 22,32" fill="url(#cubeTop)" opacity="0.9"/>
+            <!-- 3D Cube Left -->
+            <polygon points="22,32 50,46 50,76 22,62" fill="url(#cubeLeft)" opacity="0.85"/>
+            <!-- 3D Cube Right -->
+            <polygon points="50,46 78,32 78,62 50,76" fill="url(#cubeRight)" opacity="0.85"/>
+            <!-- Glow Question Mark -->
+            <text x="50" y="62" text-anchor="middle" font-family="'Plus Jakarta Sans', sans-serif" font-size="28" font-weight="900" fill="#FFFFFF" opacity="0.95">?</text>
+            <!-- Floating Sparkles -->
+            <circle cx="78" cy="24" r="2.5" fill="#818CF8" opacity="0.8"/>
+            <circle cx="18" cy="48" r="2" fill="#A5B4FC" opacity="0.7"/>
+            <circle cx="82" cy="68" r="1.5" fill="#6366F1" opacity="0.8"/>
+          </svg>
+        </div>
+      </div>
+
+      <div class="card-divider"></div>
+
+      <!-- Host Site Banner -->
+      <div class="site-banner">
+        <span class="site-icon">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#6366F1" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="10"></circle>
+            <line x1="2" y1="12" x2="22" y2="12"></line>
+            <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path>
+          </svg>
+        </span>
+        <span class="site-name" id="current-site-name">my.newtonschool.co</span>
       </div>
     </section>
 
-    <!-- Host Site Banner -->
-    <section class="site-banner">
-      <span class="site-icon">🌐</span>
-      <span class="site-name" id="current-site-name">Current Tab</span>
-    </section>
-
-    <!-- Action Buttons -->
-    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
-      <button class="btn btn-primary" id="btn-scan-now">
-        <span>🔍</span> Scan / Solve
+    <!-- Action Buttons Row 1: Scan/Solve & Select/Next -->
+    <div class="actions-grid-2">
+      <button class="btn btn-action btn-scan" id="btn-scan-now">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="11" cy="11" r="8"></circle>
+          <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+        </svg>
+        <span>Scan / Solve</span>
       </button>
-      <button class="btn btn-primary" id="btn-popup-select-next" style="background: linear-gradient(135deg, #00F5FF, #39C5BB);">
-        <span>⚡</span> Select & Next
+      <button class="btn btn-action btn-select-next" id="btn-popup-select-next">
+        <span class="btn-icon-sparkle">⚡</span>
+        <span>Select & Next</span>
       </button>
     </div>
 
-    <!-- Action Buttons -->
-    <footer class="actions">
-      <button class="btn btn-secondary" id="btn-clear-cache">
-        <span>🗑️</span> Clear Cache
+    <!-- Action Buttons Row 2: Clear Cache & Disable on Site -->
+    <div class="actions-grid-2">
+      <button class="btn btn-action btn-clear-cache" id="btn-clear-cache">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <polyline points="3 6 5 6 21 6"></polyline>
+          <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+        </svg>
+        <span>Clear Cache</span>
       </button>
-      <button class="btn btn-toggle" id="btn-toggle-site">
-        <span id="site-toggle-icon">🛡️</span> <span id="site-toggle-text">Disable on Site</span>
+      <button class="btn btn-action btn-toggle-site" id="btn-toggle-site">
+        <span id="site-toggle-icon">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
+            <path d="M9 12l2 2 4-4"></path>
+          </svg>
+        </span>
+        <span id="site-toggle-text">Disable on Site</span>
       </button>
-    </footer>
+    </div>
 
     <!-- Toast Notification -->
     <div class="toast" id="toast"></div>
