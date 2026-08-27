@@ -512,24 +512,25 @@ class QuizExtractor {
   }
 
   /**
-   * Strategy 0: Direct Newton School / Classroom / Modal Assessment Engine
+   * Strategy 0: Direct Newton School / Classroom / Assessment Engine
    */
   detectNewtonSchoolQuiz() {
-    // 1. Find all visible "Question X" header elements
+    // 1. Find all visible "Question X" or "QUESTION X/Y" header elements
     const allHeaders = Array.from(document.querySelectorAll('div, span, h1, h2, h3, h4, h5, p, b, strong')).filter(el => {
       if (!this.isVisible(el)) return false;
-      if (el.children.length > 2) return false;
+      if (el.children.length > 3) return false;
       if (this.isInsideSidebarOrList(el)) return false;
       const t = this.cleanText(el.innerText || el.textContent);
-      return /^Question\s+\d+$/i.test(t);
+      return this.questionHeaderRegex.test(t) && t.length < 35;
     });
 
     if (allHeaders.length === 0) return null;
 
     const headerEl = allHeaders[0];
     const headerText = this.cleanText(headerEl.innerText || headerEl.textContent);
-    const qNumMatch = headerText.match(/Question\s+(\d+)/i);
-    const qNum = qNumMatch ? parseInt(qNumMatch[1], 10) : null;
+    const meta = this.extractQuestionMeta(headerText);
+    const qNum = meta.questionNumber;
+    let totalQuestions = meta.totalQuestions;
 
     // Walk up to find the active question container that contains option badges
     let mainContainer = headerEl.parentElement;
@@ -604,19 +605,20 @@ class QuizExtractor {
       }
     }
 
-    // Auto-detect total question count from sidebar/palette
-    let totalQuestions = null;
-    let maxQ = 0;
-    const allItems = document.querySelectorAll('div, li, a, button, span');
-    for (const item of allItems) {
-      const txt = (item.innerText || item.textContent || '').trim();
-      const m = txt.match(/^Q(\d+)[\.\:\s]/i);
-      if (m) {
-        const num = parseInt(m[1], 10);
-        if (num > maxQ && num <= 100) maxQ = num;
+    // Auto-detect total question count from sidebar/palette if not in header
+    if (!totalQuestions) {
+      let maxQ = 0;
+      const allItems = document.querySelectorAll('div, li, a, button, span');
+      for (const item of allItems) {
+        const txt = (item.innerText || item.textContent || '').trim();
+        const m = txt.match(/^Q(\d+)[\.\:\s]/i);
+        if (m) {
+          const num = parseInt(m[1], 10);
+          if (num > maxQ && num <= 100) maxQ = num;
+        }
       }
+      if (maxQ >= 2) totalQuestions = maxQ;
     }
-    if (maxQ >= 2) totalQuestions = maxQ;
 
     if (questionText && extractedOptions.length >= 2) {
       return {
