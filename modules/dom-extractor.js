@@ -80,6 +80,33 @@ class QuizExtractor {
   }
 
   /**
+   * Check if element is inside a sidebar question list or palette.
+   */
+  isInsideSidebarOrList(el) {
+    if (!el || el === document.body) return false;
+    const sidebar = el.closest('aside, nav, [class*="sidebar"], [class*="drawer"], [class*="palette"], [class*="question-list"], [class*="nav-list"]');
+    if (sidebar) return true;
+
+    // Check if container contains multiple question items (Q1., Q2., Q3...)
+    let parent = el.parentElement;
+    let depth = 0;
+    while (parent && parent !== document.body && depth < 5) {
+      const items = parent.querySelectorAll('div, li, a, button');
+      let qCount = 0;
+      for (const item of items) {
+        const txt = this.cleanText(item.innerText || item.textContent);
+        if (/^Q\d+[\.\:\s]/i.test(txt)) {
+          qCount++;
+          if (qCount >= 2) return true;
+        }
+      }
+      parent = parent.parentElement;
+      depth++;
+    }
+    return false;
+  }
+
+  /**
    * Safe label splitter that does NOT eat command-line dashes (e.g., "--exit-on-finish").
    */
   splitOptionLabel(rawText, fallbackIndex) {
@@ -98,7 +125,6 @@ class QuizExtractor {
     }
 
     // Single-line prefix: "A. text", "A) text", "A text", "(A) text"
-    // Using \s+ prevents consuming leading "--" flags!
     const prefixMatch = trimmed.match(/^[\(\[]?([A-Za-z0-9])[\.\)\:\-\]]?\s+(.+)$/);
     if (prefixMatch) {
       const label = prefixMatch[1].toUpperCase();
@@ -117,6 +143,7 @@ class QuizExtractor {
   extractOptionData(optCard, index) {
     const fallbackLabel = String.fromCharCode(65 + index);
     if (!optCard) return null;
+    if (this.isInsideSidebarOrList(optCard)) return null;
 
     // Check for child badge with option letter (e.g. Newton School [A] box)
     const childNodes = Array.from(optCard.querySelectorAll('div, span, b, strong, p, button'));
@@ -133,7 +160,6 @@ class QuizExtractor {
     }
 
     if (badgeEl && badgeLabel) {
-      // Find the main text child/node
       let text = '';
       for (const child of childNodes) {
         if (child === badgeEl || badgeEl.contains(child) || child.contains(badgeEl)) continue;
@@ -172,16 +198,16 @@ class QuizExtractor {
 
   /**
    * Strategy 1: Universal Option-Cluster Reverse Detection
-   * Finds sets of sequential choice badges (A, B, C, D) and traces their parent question.
    */
   detectByOptionClusters() {
-    // Find all elements containing just "A" or starting with "A"
     const allElements = Array.from(document.querySelectorAll('div, span, button, label, li, p, b, strong'));
     const candidateABadges = [];
 
     for (const el of allElements) {
       if (!this.isVisible(el)) continue;
       if (el.children.length > 2) continue;
+      if (this.isInsideSidebarOrList(el)) continue;
+
       const text = this.cleanText(el.innerText || el.textContent);
       if (text === 'A' || text === 'A.' || text === 'A)' || text === '(A)' || text === '1' || text === '1.') {
         candidateABadges.push(el);
@@ -189,7 +215,6 @@ class QuizExtractor {
     }
 
     for (const aBadge of candidateABadges) {
-      // Find the card wrapping option A
       let aCard = aBadge;
       while (aCard && aCard.parentElement && aCard.parentElement !== document.body && aCard.offsetHeight < 120) {
         if (aCard.parentElement.children.length >= 2 && aCard.parentElement.children.length <= 10) {
@@ -199,9 +224,8 @@ class QuizExtractor {
       }
 
       const optionsParent = aCard?.parentElement;
-      if (!optionsParent) continue;
+      if (!optionsParent || this.isInsideSidebarOrList(optionsParent)) continue;
 
-      // Look for sibling option cards B, C, D in the same parent
       const cards = Array.from(optionsParent.children).filter(c => this.isVisible(c) && !this.isIgnoredText(c.innerText));
       if (cards.length < 2 || cards.length > 10) continue;
 
@@ -218,8 +242,8 @@ class QuizExtractor {
         }
       });
 
-      // Valid option group must contain at least A and B
-      if (extractedOptions.length >= 2) {
+      // Valid option group must contain distinct labels A and B
+      if (extractedOptions.length >= 2 && seenLabels.has('A') && seenLabels.has('B')) {
         // Find question text: walk backwards from optionsParent
         let questionText = '';
         let questionMeta = { questionNumber: null, totalQuestions: null };
@@ -297,6 +321,8 @@ class QuizExtractor {
     for (const el of allHeaders) {
       if (!this.isVisible(el)) continue;
       if (el.children.length > 3) continue;
+      if (this.isInsideSidebarOrList(el)) continue;
+
       const text = this.cleanText(el.innerText || el.textContent);
       if (this.questionHeaderRegex.test(text) && text.length < 35) {
         meta = this.extractQuestionMeta(text);
@@ -307,12 +333,22 @@ class QuizExtractor {
 
     if (!headerEl) return null;
 
-    // Walk up to question block container
+    // Walk up to find the active question container
     let container = headerEl.parentElement;
     let depth = 0;
     while (container && container !== document.body && depth < 6) {
-      const cards = container.querySelectorAll('[class*="option"], [class*="choice"], [class*="answer"], [role="radio"], label, div[tabindex]');
-      if (cards.length >= 2 && cards.length <= 10) break;
+      if (this.isInsideSidebarOrList(container)) {
+        container = container.parentElement;
+        depth++;
+        continue;
+      }
+
+      // Check if container has option cards with badges or inputs
+      const candidateBadges = Array.from(container.querySelectorAll('div, span, button, b, strong')).filter(
+        c => this.isVisible(c) && /^[A-D]$/i.test(this.cleanText(c.innerText || c.textContent)) && !this.isInsideSidebarOrList(c)
+      );
+
+      if (candidateBadges.length >= 2) break;
       container = container.parentElement;
       depth++;
     }
@@ -324,38 +360,68 @@ class QuizExtractor {
     const textNodes = container.querySelectorAll('h1, h2, h3, h4, h5, p, [class*="question"], [class*="title"], [class*="prompt"], div');
     for (const tn of textNodes) {
       if (!this.isVisible(tn) || tn.contains(headerEl) || headerEl.contains(tn)) continue;
-      if (tn.children.length > 4) continue;
+      if (this.isInsideSidebarOrList(tn)) continue;
+      if (tn.children.length > 5) continue;
       const t = this.cleanText(tn.innerText || tn.textContent);
       if (
         t.length > 8 &&
         !this.isIgnoredText(t) &&
         !this.questionHeaderRegex.test(t) &&
         !t.includes('Mark for review') &&
-        !t.includes('Clear Selection')
+        !t.includes('Clear Selection') &&
+        !/^Q\d+[\.\:]/i.test(t)
       ) {
         questionText = t;
         break;
       }
     }
 
-    // Find option elements
-    const optionCards = container.querySelectorAll(
-      '[class*="option"], [class*="choice"], [class*="answer"], [class*="radio"], [role="radio"], label, div[tabindex]'
-    );
-
+    // Find option elements within container
     const validOptions = [];
     const seenTexts = new Set();
+    const seenLabels = new Set();
 
-    for (const card of optionCards) {
-      if (!this.isVisible(card)) continue;
-      if (card.contains(headerEl)) continue;
-      if (questionText && card.textContent.includes(questionText) && card.textContent.length < questionText.length + 10) continue;
-      if (validOptions.some(vo => vo.element.contains(card))) continue;
+    // 1. First look for elements with [A], [B], [C], [D] badges
+    const candidateABadges = Array.from(container.querySelectorAll('div, span, button, b, strong')).filter(
+      c => this.isVisible(c) && /^[A-D]$/i.test(this.cleanText(c.innerText || c.textContent)) && !this.isInsideSidebarOrList(c)
+    );
 
-      const opt = this.extractOptionData(card, validOptions.length);
-      if (opt && opt.text && !this.isIgnoredText(opt.text) && !seenTexts.has(opt.text.toLowerCase())) {
-        seenTexts.add(opt.text.toLowerCase());
-        validOptions.push(opt);
+    for (const badge of candidateABadges) {
+      let card = badge;
+      let cDepth = 0;
+      while (card && card.parentElement && card.parentElement !== container && cDepth < 4) {
+        if (card.parentElement.children.length >= 2 && card.parentElement.children.length <= 8) {
+          break;
+        }
+        card = card.parentElement;
+        cDepth++;
+      }
+
+      if (card && !validOptions.some(vo => vo.element === card || vo.element.contains(card))) {
+        const opt = this.extractOptionData(card, validOptions.length);
+        if (opt && opt.text && !this.isIgnoredText(opt.text) && !seenTexts.has(opt.text.toLowerCase())) {
+          seenLabels.add(opt.label);
+          seenTexts.add(opt.text.toLowerCase());
+          validOptions.push(opt);
+        }
+      }
+    }
+
+    // 2. Fallback to generic option cards if badge method found nothing
+    if (validOptions.length < 2) {
+      const genericCards = container.querySelectorAll(
+        '[class*="option"], [class*="choice"], [class*="answer"], [class*="radio"], [role="radio"], label, div[tabindex]'
+      );
+      for (const card of genericCards) {
+        if (!this.isVisible(card) || card.contains(headerEl) || this.isInsideSidebarOrList(card)) continue;
+        if (validOptions.some(vo => vo.element.contains(card))) continue;
+
+        const opt = this.extractOptionData(card, validOptions.length);
+        if (opt && opt.text && !this.isIgnoredText(opt.text) && !seenTexts.has(opt.text.toLowerCase())) {
+          seenLabels.add(opt.label);
+          seenTexts.add(opt.text.toLowerCase());
+          validOptions.push(opt);
+        }
       }
     }
 

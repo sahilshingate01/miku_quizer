@@ -210,9 +210,10 @@
     if (nextBtn) {
       console.log('[Miku Quizer] Clicking Next button automatically:', nextBtn);
       safelyClickElement(nextBtn);
-      setTimeout(() => { if (isAssistantRunning) scanPage(true); }, 350);
-      setTimeout(() => { if (isAssistantRunning) scanPage(true); }, 850);
-      setTimeout(() => { if (isAssistantRunning) scanPage(true); }, 1500);
+      // Non-forcing scans so it only triggers when the question hash actually changes on the DOM
+      setTimeout(() => { if (isAssistantRunning) scanPage(false); }, 400);
+      setTimeout(() => { if (isAssistantRunning) scanPage(false); }, 900);
+      setTimeout(() => { if (isAssistantRunning) scanPage(false); }, 1500);
       return true;
     } else {
       console.warn('[Miku Quizer] Could not locate Next button on page.');
