@@ -365,7 +365,7 @@ class FloatingPanel {
           <div class="miku-ready-container">
             <div class="miku-answer-hero">
               <div class="miku-suggested-badge">
-                <span class="label-prefix">Suggested</span>
+                <span class="label-prefix">SUGGESTED</span>
                 <span class="label-answer">${this.escapeHTML(result.answer)}</span>
               </div>
               
@@ -385,7 +385,7 @@ class FloatingPanel {
             ${this.showExplanation && result.explanation ? `
               <div class="miku-explanation-card">
                 <div class="miku-expl-title">
-                  <span>💡 Why this answer?</span>
+                  <span>💡 WHY THIS ANSWER?</span>
                 </div>
                 <div class="miku-expl-text">${this.escapeHTML(result.explanation)}</div>
               </div>
@@ -406,7 +406,7 @@ class FloatingPanel {
                 <div class="countdown-track">
                   <div class="countdown-fill" id="miku-countdown-bar"></div>
                 </div>
-                <button class="btn-cancel-advance" data-action="cancel-advance" title="Pause and stay on this question">Pause</button>
+                <button class="btn-cancel-advance" data-action="cancel-advance" title="Pause auto-advance">Pause</button>
               </div>
             ` : ''}
 
@@ -416,10 +416,10 @@ class FloatingPanel {
                   <span class="miku-final-icon">🏁</span>
                   <span class="miku-final-title">End of Quiz</span>
                 </div>
-                <div class="miku-final-desc">All ${questionMeta.totalQuestions} questions completed! Review your choices and click <b>Submit Quiz</b> when ready.</div>
+                <div class="miku-final-desc">All ${questionMeta?.totalQuestions || ''} questions completed! Review your choices and click <b>Submit Quiz</b> when ready.</div>
               </div>
               <div class="miku-actions-bar" style="justify-content: flex-end;">
-                <button class="miku-btn miku-btn-secondary" data-action="refresh" title="Re-evaluate with Groq AI">
+                <button class="miku-btn miku-btn-secondary" data-action="refresh" title="Re-evaluate with GPT-5.4">
                   <span class="btn-icon">🔄</span> Re-check
                 </button>
               </div>
@@ -428,7 +428,7 @@ class FloatingPanel {
                 <button class="miku-btn miku-btn-primary" data-action="select-and-next" title="Select Option ${this.escapeHTML(result.answer)} and go to Next Question">
                   <span>⚡ Select & Next →</span>
                 </button>
-                <button class="miku-btn miku-btn-secondary" data-action="refresh" title="Re-evaluate with Groq AI">
+                <button class="miku-btn miku-btn-secondary" data-action="refresh" title="Re-evaluate with GPT-5.4">
                   <span class="btn-icon">🔄</span> Re-check
                 </button>
               </div>
@@ -468,12 +468,13 @@ class FloatingPanel {
     return `
       <style>
         :host {
-          font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+          font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
           font-size: 13px;
           line-height: 1.4;
-          color: #e2f1f8;
+          color: #0F172A;
           box-sizing: border-box;
           user-select: none;
+          -webkit-font-smoothing: antialiased;
         }
 
         *, *::before, *::after {
@@ -483,14 +484,14 @@ class FloatingPanel {
         /* Floating Window */
         .miku-panel {
           position: fixed;
-          width: 320px;
+          width: 340px;
           max-width: calc(100vw - 30px);
-          background: linear-gradient(135deg, rgba(13, 23, 33, 0.95), rgba(18, 30, 42, 0.92));
-          backdrop-filter: blur(14px);
-          -webkit-backdrop-filter: blur(14px);
-          border: 1px solid rgba(57, 197, 187, 0.35);
-          box-shadow: 0 10px 30px rgba(0, 0, 0, 0.6), 0 0 20px rgba(57, 197, 187, 0.2);
-          border-radius: 14px;
+          background: rgba(255, 255, 255, 0.96);
+          backdrop-filter: blur(20px);
+          -webkit-backdrop-filter: blur(20px);
+          border: 1px solid rgba(226, 232, 240, 0.9);
+          box-shadow: 0 16px 48px rgba(99, 102, 241, 0.14), 0 4px 16px rgba(0, 0, 0, 0.04);
+          border-radius: 22px;
           display: flex;
           flex-direction: column;
           overflow: hidden;
@@ -500,10 +501,10 @@ class FloatingPanel {
         }
 
         .miku-panel.is-dragging {
-          opacity: 0.9;
+          opacity: 0.95;
           transform: scale(1.02);
-          border-color: #00f5ff;
-          box-shadow: 0 14px 40px rgba(0, 245, 255, 0.35);
+          border-color: #818CF8;
+          box-shadow: 0 20px 56px rgba(99, 102, 241, 0.22);
         }
 
         /* Header */
@@ -511,9 +512,9 @@ class FloatingPanel {
           display: flex;
           align-items: center;
           justify-content: space-between;
-          padding: 10px 14px;
-          background: rgba(20, 36, 50, 0.8);
-          border-bottom: 1px solid rgba(57, 197, 187, 0.25);
+          padding: 12px 16px;
+          background: #FFFFFF;
+          border-bottom: 1px solid #F1F5F9;
           cursor: grab;
         }
 
@@ -524,30 +525,50 @@ class FloatingPanel {
         .miku-brand {
           display: flex;
           align-items: center;
-          gap: 8px;
+          gap: 10px;
         }
 
-        .miku-avatar {
-          width: 22px;
-          height: 22px;
+        .miku-avatar-ring {
+          width: 34px;
+          height: 34px;
           border-radius: 50%;
-          background: linear-gradient(135deg, #39C5BB, #00F5FF);
+          padding: 2px;
+          background: linear-gradient(135deg, #818CF8 0%, #C084FC 50%, #FDE047 100%);
+          box-shadow: 0 2px 8px rgba(129, 140, 248, 0.3);
           display: flex;
           align-items: center;
           justify-content: center;
-          font-size: 11px;
-          color: #0e1721;
+          flex-shrink: 0;
+        }
+
+        .miku-avatar-core {
+          width: 100%;
+          height: 100%;
+          background: #FFFFFF;
+          border-radius: 50%;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          font-size: 13px;
           font-weight: 900;
-          box-shadow: 0 0 8px rgba(57, 197, 187, 0.6);
+          color: #0F172A;
         }
 
         .miku-title {
-          font-size: 13px;
-          font-weight: 700;
-          letter-spacing: 0.5px;
-          background: linear-gradient(90deg, #39C5BB, #00F5FF);
-          -webkit-background-clip: text;
-          -webkit-text-fill-color: transparent;
+          font-size: 15px;
+          font-weight: 800;
+          letter-spacing: -0.3px;
+          display: flex;
+          align-items: center;
+          gap: 3px;
+        }
+
+        .miku-title-miku {
+          color: #6366F1;
+        }
+
+        .miku-title-quizer {
+          color: #0F172A;
         }
 
         .miku-controls {
@@ -557,86 +578,93 @@ class FloatingPanel {
         }
 
         .miku-ctrl-btn {
-          width: 22px;
-          height: 22px;
-          border-radius: 6px;
-          border: 1px solid rgba(255, 255, 255, 0.1);
-          background: rgba(255, 255, 255, 0.05);
-          color: #a0c4d8;
+          width: 28px;
+          height: 28px;
+          border-radius: 9px;
+          border: 1px solid #E2E8F0;
+          background: #F8FAFC;
+          color: #64748B;
           display: flex;
           align-items: center;
           justify-content: center;
           cursor: pointer;
           font-size: 12px;
+          font-weight: bold;
           transition: all 0.15s ease;
         }
 
         .miku-ctrl-btn:hover {
-          background: rgba(57, 197, 187, 0.25);
-          color: #ffffff;
-          border-color: #39C5BB;
+          background: #F1F5F9;
+          color: #6366F1;
+          border-color: #CBD5E1;
         }
 
         .miku-ctrl-btn.close:hover {
-          background: rgba(255, 60, 90, 0.3);
-          border-color: #ff3c5a;
-          color: #ffb4c0;
+          background: #FFF1F2;
+          border-color: #FECDD3;
+          color: #E11D48;
         }
 
         /* Body */
         .miku-body {
           padding: 14px;
-          max-height: 420px;
+          max-height: 440px;
           overflow-y: auto;
+          display: flex;
+          flex-direction: column;
+          gap: 10px;
         }
 
         .miku-body::-webkit-scrollbar {
           width: 4px;
         }
         .miku-body::-webkit-scrollbar-thumb {
-          background: rgba(57, 197, 187, 0.3);
+          background: #E2E8F0;
           border-radius: 4px;
         }
 
-        /* States */
+        /* Status Boxes */
         .miku-status-box {
           display: flex;
           flex-direction: column;
           align-items: center;
           text-align: center;
-          padding: 12px 6px;
+          padding: 18px 12px;
+          background: #F8FAFC;
+          border: 1px solid #F1F5F9;
+          border-radius: 16px;
         }
 
         .miku-status-title {
-          font-weight: 700;
+          font-weight: 800;
           font-size: 14px;
-          margin-bottom: 6px;
-          color: #e2f1f8;
+          margin-bottom: 4px;
+          color: #1E1B4B;
         }
 
         .miku-status-title.neon {
-          color: #00F5FF;
-          text-shadow: 0 0 10px rgba(0, 245, 255, 0.5);
+          color: #4F46E5;
         }
 
         .miku-status-title.error-txt {
-          color: #ff7288;
+          color: #E11D48;
         }
 
         .miku-status-desc {
           font-size: 12px;
-          color: #92b1c6;
-          line-height: 1.4;
+          color: #64748B;
+          line-height: 1.45;
+          font-weight: 500;
         }
 
         .miku-status-desc.q-preview {
-          background: rgba(0, 0, 0, 0.25);
-          padding: 8px 10px;
-          border-radius: 8px;
-          border: 1px dashed rgba(57, 197, 187, 0.3);
-          margin-top: 8px;
-          font-style: italic;
-          max-height: 60px;
+          background: #FFFFFF;
+          padding: 10px 12px;
+          border-radius: 10px;
+          border: 1px solid #E2E8F0;
+          margin-top: 10px;
+          color: #1E293B;
+          max-height: 70px;
           overflow: hidden;
           text-overflow: ellipsis;
         }
@@ -653,7 +681,7 @@ class FloatingPanel {
         .miku-equalizer .bar {
           width: 5px;
           border-radius: 3px;
-          background: linear-gradient(to top, #39C5BB, #00F5FF);
+          background: linear-gradient(to top, #6366F1, #A855F7);
           animation: mikuBounce 0.8s ease-in-out infinite alternate;
         }
 
@@ -670,32 +698,33 @@ class FloatingPanel {
 
         /* Radar Ring for Idle */
         .miku-radar-ring {
-          width: 32px;
-          height: 32px;
+          width: 36px;
+          height: 36px;
           border-radius: 50%;
-          border: 2px solid #39C5BB;
+          border: 2px solid #818CF8;
           position: relative;
           margin-bottom: 10px;
           animation: radarPulse 1.8s ease-out infinite;
         }
 
         @keyframes radarPulse {
-          0% { transform: scale(0.6); opacity: 1; box-shadow: 0 0 0 0 rgba(57, 197, 187, 0.8); }
-          70% { transform: scale(1.1); opacity: 0.4; box-shadow: 0 0 0 10px rgba(57, 197, 187, 0); }
+          0% { transform: scale(0.6); opacity: 1; box-shadow: 0 0 0 0 rgba(99, 102, 241, 0.6); }
+          70% { transform: scale(1.1); opacity: 0.4; box-shadow: 0 0 0 10px rgba(99, 102, 241, 0); }
           100% { transform: scale(1.2); opacity: 0; }
         }
 
-        /* Ready Answer Hero */
+        /* Ready Answer Hero Card */
         .miku-answer-hero {
-          background: rgba(57, 197, 187, 0.08);
-          border: 1px solid rgba(57, 197, 187, 0.35);
-          border-radius: 10px;
-          padding: 12px;
+          background: #F8FAFC;
+          border: 1px solid #F1F5F9;
+          border-radius: 16px;
+          padding: 14px;
           margin-bottom: 10px;
           display: flex;
           align-items: center;
           justify-content: space-between;
-          gap: 12px;
+          gap: 14px;
+          box-shadow: 0 2px 8px rgba(99, 102, 241, 0.03);
         }
 
         .miku-suggested-badge {
@@ -705,41 +734,43 @@ class FloatingPanel {
         }
 
         .label-prefix {
-          font-size: 10px;
+          font-size: 10.5px;
           text-transform: uppercase;
-          letter-spacing: 1px;
-          color: #39C5BB;
-          font-weight: 700;
+          letter-spacing: 0.8px;
+          color: #6366F1;
+          font-weight: 800;
         }
 
         .label-answer {
-          font-size: 26px;
+          font-size: 34px;
           font-weight: 900;
-          color: #ffffff;
-          line-height: 1.1;
-          text-shadow: 0 0 12px rgba(57, 197, 187, 0.6);
+          color: #1E1B4B;
+          line-height: 1;
+          margin-top: 2px;
         }
 
         .miku-confidence-wrapper {
           flex: 1;
           display: flex;
           flex-direction: column;
-          gap: 4px;
+          gap: 5px;
         }
 
         .confidence-header {
           display: flex;
           justify-content: space-between;
-          font-size: 11px;
+          align-items: center;
+          font-size: 11.5px;
         }
 
         .conf-title {
-          color: #92b1c6;
+          color: #64748B;
+          font-weight: 600;
         }
 
         .conf-val {
-          font-weight: 700;
-          color: #00F5FF;
+          font-weight: 800;
+          color: #10B981;
           display: flex;
           align-items: center;
           gap: 4px;
@@ -748,53 +779,57 @@ class FloatingPanel {
         .conf-track {
           width: 100%;
           height: 6px;
-          background: rgba(255, 255, 255, 0.1);
+          background: #E2E8F0;
           border-radius: 3px;
           overflow: hidden;
         }
 
         .conf-bar {
           height: 100%;
-          background: linear-gradient(90deg, #39C5BB, #00F5FF);
+          background: linear-gradient(90deg, #6366F1, #38BDF8);
           border-radius: 3px;
           transition: width 0.4s ease;
-          box-shadow: 0 0 6px rgba(0, 245, 255, 0.8);
         }
 
         /* Explanation Box */
         .miku-explanation-card {
-          background: rgba(14, 25, 36, 0.7);
-          border: 1px solid rgba(255, 255, 255, 0.08);
-          border-radius: 8px;
-          padding: 10px;
+          background: #FFFFFF;
+          border: 1px solid #F1F5F9;
+          border-radius: 16px;
+          padding: 14px;
           margin-bottom: 10px;
+          box-shadow: 0 2px 8px rgba(0, 0, 0, 0.02);
         }
 
         .miku-expl-title {
           font-size: 11px;
-          font-weight: 700;
-          color: #ffd166;
-          margin-bottom: 4px;
+          font-weight: 800;
+          color: #D97706;
+          margin-bottom: 6px;
           text-transform: uppercase;
-          letter-spacing: 0.5px;
+          letter-spacing: 0.6px;
+          display: flex;
+          align-items: center;
+          gap: 4px;
         }
 
         .miku-expl-text {
-          font-size: 12px;
-          color: #cce4f2;
-          line-height: 1.45;
+          font-size: 12.5px;
+          color: #1E293B;
+          line-height: 1.5;
+          font-weight: 500;
         }
 
         /* Sources */
         .miku-sources-box {
-          font-size: 10px;
-          color: #7b9ab0;
+          font-size: 10.5px;
+          color: #64748B;
           margin-bottom: 8px;
         }
 
         .sources-label {
           font-weight: 700;
-          color: #39C5BB;
+          color: #6366F1;
         }
 
         /* Buttons & Actions */
@@ -809,105 +844,129 @@ class FloatingPanel {
         .miku-btn {
           display: inline-flex;
           align-items: center;
+          justify-content: center;
           gap: 6px;
-          padding: 6px 12px;
-          border-radius: 6px;
-          font-size: 11px;
-          font-weight: 600;
+          padding: 10px 14px;
+          border-radius: 12px;
+          font-size: 12.5px;
+          font-weight: 700;
           cursor: pointer;
           border: none;
-          transition: all 0.15s ease;
+          transition: all 0.2s ease;
+          font-family: inherit;
+        }
+
+        .miku-btn:active {
+          transform: scale(0.97);
+        }
+
+        .miku-btn-primary {
+          flex: 1.4;
+          background: linear-gradient(90deg, #EEF2FF 0%, #F5F3FF 40%, #FEF3C7 100%);
+          border: 1px solid rgba(245, 158, 11, 0.3);
+          color: #4338CA;
+          font-weight: 800;
+          box-shadow: 0 2px 8px rgba(99, 102, 241, 0.08);
+        }
+
+        .miku-btn-primary:hover {
+          transform: translateY(-1px);
+          box-shadow: 0 4px 12px rgba(99, 102, 241, 0.14);
         }
 
         .miku-btn-secondary {
-          background: rgba(57, 197, 187, 0.15);
-          color: #39C5BB;
-          border: 1px solid rgba(57, 197, 187, 0.4);
+          flex: 1;
+          background: #FFFFFF;
+          border: 1px solid #E2E8F0;
+          color: #0F172A;
+          box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
         }
 
         .miku-btn-secondary:hover {
-          background: rgba(57, 197, 187, 0.3);
-          color: #ffffff;
+          background: #F8FAFC;
+          border-color: #CBD5E1;
         }
 
         .miku-btn-retry {
-          background: linear-gradient(135deg, #39C5BB, #00F5FF);
-          color: #0e1621;
-          font-weight: 700;
+          background: linear-gradient(90deg, #EEF2FF, #FEF3C7);
+          border: 1px solid rgba(245, 158, 11, 0.3);
+          color: #4338CA;
+          font-weight: 800;
           margin-top: 10px;
+          padding: 8px 16px;
         }
 
         /* Countdown Box for Auto-Advance */
         .miku-countdown-box {
           display: flex;
           align-items: center;
-          gap: 8px;
-          background: rgba(0, 0, 0, 0.35);
-          border: 1px solid rgba(57, 197, 187, 0.25);
-          border-radius: 8px;
-          padding: 6px 10px;
+          gap: 10px;
+          background: #F8FAFC;
+          border: 1px solid #E2E8F0;
+          border-radius: 14px;
+          padding: 8px 12px;
           margin-bottom: 8px;
         }
 
         .countdown-info {
           display: flex;
           align-items: center;
-          gap: 4px;
+          gap: 5px;
           white-space: nowrap;
         }
 
         .countdown-label {
-          font-size: 10.5px;
-          color: #92b1c6;
-          font-weight: 600;
+          font-size: 11px;
+          color: #64748B;
+          font-weight: 700;
         }
 
         .countdown-sec {
-          font-size: 11px;
+          font-size: 12px;
           font-weight: 800;
-          color: #00F5FF;
+          color: #6366F1;
           min-width: 24px;
         }
 
         .countdown-track {
           flex: 1;
-          height: 4px;
-          background: rgba(255, 255, 255, 0.1);
-          border-radius: 2px;
+          height: 6px;
+          background: #E2E8F0;
+          border-radius: 3px;
           overflow: hidden;
         }
 
         .countdown-fill {
           height: 100%;
           width: 100%;
-          background: linear-gradient(90deg, #39C5BB, #00F5FF);
-          border-radius: 2px;
+          background: linear-gradient(90deg, #6366F1, #38BDF8);
+          border-radius: 3px;
         }
 
         .btn-cancel-advance {
-          background: rgba(255, 255, 255, 0.08);
-          border: 1px solid rgba(255, 255, 255, 0.15);
-          color: #d1e8f5;
-          font-size: 10px;
+          background: #FFFFFF;
+          border: 1px solid #CBD5E1;
+          color: #334155;
+          font-size: 11px;
           font-weight: 700;
-          padding: 2px 8px;
-          border-radius: 4px;
+          padding: 4px 10px;
+          border-radius: 8px;
           cursor: pointer;
           transition: all 0.15s ease;
         }
 
         .btn-cancel-advance:hover {
-          background: rgba(255, 71, 87, 0.25);
-          border-color: #ff4757;
-          color: #ffffff;
+          background: #FFF1F2;
+          border-color: #FECDD3;
+          color: #E11D48;
         }
 
         .miku-final-box {
-          background: linear-gradient(135deg, rgba(255, 209, 102, 0.12), rgba(57, 197, 187, 0.1));
-          border: 1px solid rgba(255, 209, 102, 0.45);
-          box-shadow: 0 4px 14px rgba(255, 209, 102, 0.15);
-          border-radius: 8px;
-          padding: 10px 12px;
+          background: linear-gradient(135deg, #FEF3C7, #EEF2FF);
+          border: 1px solid rgba(245, 158, 11, 0.4);
+          box-shadow: 0 4px 14px rgba(245, 158, 11, 0.1);
+          border-radius: 14px;
+          padding: 12px 14px;
           margin-bottom: 10px;
           text-align: center;
         }
@@ -921,54 +980,49 @@ class FloatingPanel {
         }
 
         .miku-final-icon {
-          font-size: 16px;
+          font-size: 18px;
         }
 
         .miku-final-title {
-          font-size: 12px;
+          font-size: 13px;
           font-weight: 800;
-          color: #ffd166;
+          color: #B45309;
           text-transform: uppercase;
           letter-spacing: 0.5px;
         }
 
         .miku-final-desc {
-          font-size: 11.5px;
-          color: #d1e8f5;
-          line-height: 1.4;
+          font-size: 12px;
+          color: #334155;
+          line-height: 1.45;
         }
 
         .miku-final-desc b {
-          color: #00F5FF;
-        }
-
-        .miku-manual-hint {
-          font-size: 10px;
-          color: #ff98a8;
-          font-weight: 500;
+          color: #4338CA;
         }
 
         .miku-tag-cached {
-          font-size: 9px;
-          padding: 1px 4px;
-          border-radius: 4px;
-          background: rgba(255, 209, 102, 0.2);
-          color: #ffd166;
-          border: 1px solid rgba(255, 209, 102, 0.4);
+          font-size: 9.5px;
+          padding: 2px 6px;
+          border-radius: 6px;
+          background: #FEF3C7;
+          color: #D97706;
+          border: 1px solid #FDE68A;
+          font-weight: 800;
         }
 
         .miku-badge-pill {
           display: inline-block;
-          padding: 3px 8px;
+          padding: 4px 10px;
           border-radius: 12px;
-          font-size: 11px;
-          font-weight: 700;
+          font-size: 11.5px;
+          font-weight: 800;
         }
 
         .miku-badge-pill.cyan {
-          background: rgba(0, 245, 255, 0.15);
-          color: #00F5FF;
-          border: 1px solid rgba(0, 245, 255, 0.4);
+          background: #F5F3FF;
+          color: #6366F1;
+          border: 1px solid #EDE9FE;
         }
 
         /* Minimized Floating Pill */
@@ -976,14 +1030,14 @@ class FloatingPanel {
           position: fixed;
           bottom: 20px;
           right: 20px;
-          background: linear-gradient(135deg, #0e1b26, #162939);
-          border: 1px solid #39C5BB;
-          box-shadow: 0 4px 18px rgba(0, 0, 0, 0.5), 0 0 12px rgba(57, 197, 187, 0.4);
+          background: #FFFFFF;
+          border: 1px solid #E2E8F0;
+          box-shadow: 0 8px 24px rgba(99, 102, 241, 0.15), 0 2px 6px rgba(0, 0, 0, 0.04);
           border-radius: 30px;
-          padding: 8px 14px;
+          padding: 8px 16px;
           display: none;
           align-items: center;
-          gap: 8px;
+          gap: 10px;
           cursor: pointer;
           pointer-events: auto;
           z-index: 2147483647;
@@ -992,34 +1046,50 @@ class FloatingPanel {
 
         .miku-mini-pill:hover {
           transform: translateY(-2px);
-          box-shadow: 0 6px 22px rgba(0, 245, 255, 0.6);
+          box-shadow: 0 12px 32px rgba(99, 102, 241, 0.22);
         }
 
-        .mini-avatar {
-          width: 20px;
-          height: 20px;
+        .mini-avatar-ring {
+          width: 24px;
+          height: 24px;
           border-radius: 50%;
-          background: #39C5BB;
+          padding: 1.5px;
+          background: linear-gradient(135deg, #818CF8, #C084FC, #FDE047);
           display: flex;
           align-items: center;
           justify-content: center;
-          font-size: 11px;
-          color: #0e1721;
-          font-weight: bold;
+        }
+
+        .mini-avatar-core {
+          width: 100%;
+          height: 100%;
+          background: #FFFFFF;
+          border-radius: 50%;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          font-size: 10px;
+          color: #0F172A;
+          font-weight: 900;
         }
 
         .mini-text {
-          font-size: 12px;
-          font-weight: 700;
-          color: #39C5BB;
+          font-size: 13px;
+          font-weight: 800;
+          color: #4338CA;
         }
       </style>
 
       <div class="miku-panel" id="miku-panel">
         <div class="miku-header" id="miku-drag-handle">
           <div class="miku-brand">
-            <div class="miku-avatar">39</div>
-            <span class="miku-title">Miku Quizer</span>
+            <div class="miku-avatar-ring">
+              <div class="miku-avatar-core">39</div>
+            </div>
+            <div class="miku-title">
+              <span class="miku-title-miku">Miku</span>
+              <span class="miku-title-quizer">Quizer</span>
+            </div>
           </div>
           <div class="miku-controls">
             <button class="miku-ctrl-btn" id="btn-minimize" title="Minimize">─</button>
@@ -1033,7 +1103,9 @@ class FloatingPanel {
       </div>
 
       <div class="miku-mini-pill" id="miku-mini-pill" title="Click to expand Miku Quizer">
-        <div class="mini-avatar">🎵</div>
+        <div class="mini-avatar-ring">
+          <div class="mini-avatar-core">39</div>
+        </div>
         <span class="mini-text" id="mini-pill-text">Miku Quizer</span>
       </div>
     `;
