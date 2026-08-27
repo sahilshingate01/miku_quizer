@@ -419,9 +419,11 @@
 
   function activateAssistant() {
     isAssistantRunning = true;
-    if (floatingPanel) floatingPanel.show();
     setupMutationObserver();
-    scanPage(true);
+    const detected = scanPage(true);
+    if (detected && floatingPanel) {
+      floatingPanel.show();
+    }
     console.log('[Miku Quizer] Assistant activated on tab.');
   }
 
@@ -448,7 +450,9 @@
    */
   chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     if (message.type === 'START_ASSISTANT' || message.type === 'ACTIVATE_ASSISTANT') {
-      activateAssistant();
+      isAssistantRunning = true;
+      if (floatingPanel) floatingPanel.show();
+      setupMutationObserver();
       const detected = scanPage(true);
       sendResponse({
         success: true,
@@ -480,7 +484,9 @@
       return true;
     } else if (message.type === 'SCAN_PAGE') {
       if (!isAssistantRunning) {
-        activateAssistant();
+        isAssistantRunning = true;
+        if (floatingPanel) floatingPanel.show();
+        setupMutationObserver();
       }
       const detected = scanPage(message.force || false);
       sendResponse({
@@ -560,10 +566,6 @@
 
         if (currentConfig.disabledSites && currentConfig.disabledSites.includes(currentHost)) {
           deactivateAssistant();
-        } else if (currentConfig.assistantActive === false && isAssistantRunning) {
-          deactivateAssistant();
-        } else if (currentConfig.assistantActive === true && !isAssistantRunning) {
-          activateAssistant();
         }
       }
     });
@@ -587,11 +589,12 @@
       }
     }, true);
 
-    // Default to dormant and hidden on page load
-    if (config.assistantActive === true) {
-      activateAssistant();
-    } else {
-      deactivateAssistant();
+    // Auto-detect only if page actually contains a valid quiz
+    if (config.autoDetectQuiz === true && extractor) {
+      const detected = extractor.extractQuizQuestion();
+      if (detected && detected.options && detected.options.length >= 2) {
+        activateAssistant();
+      }
     }
   }
 

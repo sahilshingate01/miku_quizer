@@ -258,19 +258,50 @@ async function triggerOAuthLogin() {
 }
 
 /**
- * Query OpenAI OAuth Proxy with ChatGPT account (GPT-5.4 / GPT-5.5 / GPT-5.6).
+ * Helper to safely extract JSON from AI response strings
  */
-async function queryOpenAIOAuth(messages, requestedModel = 'gpt-5.4') {
-  const model = requestedModel && requestedModel.startsWith('gpt-') ? requestedModel : 'gpt-5.4';
+function extractJSON(text) {
+  if (!text || typeof text !== 'string') {
+    throw new Error('Empty or non-string AI response');
+  }
+  const clean = text.trim();
+  try {
+    return JSON.parse(clean);
+  } catch {}
+
+  // 1. Try regex for ```json ... ``` codeblocks
+  const codeBlockMatch = clean.match(/```(?:json)?\s*([\s\S]*?)\s*```/);
+  if (codeBlockMatch && codeBlockMatch[1]) {
+    try {
+      return JSON.parse(codeBlockMatch[1].trim());
+    } catch {}
+  }
+
+  // 2. Try slicing first { and last }
+  const firstBrace = clean.indexOf('{');
+  const lastBrace = clean.lastIndexOf('}');
+  if (firstBrace !== -1 && lastBrace > firstBrace) {
+    try {
+      return JSON.parse(clean.slice(firstBrace, lastBrace + 1));
+    } catch {}
+  }
+
+  throw new Error(`Could not parse valid JSON from AI response: ${clean.slice(0, 150)}`);
+}
+
+/**
+ * Query OpenAI OAuth Proxy with ChatGPT account (GPT-5.4 / GPT-5.4-mini / GPT-5.5).
+ */
+async function queryOpenAIOAuth(messages, requestedModel = 'gpt-5.4-mini') {
+  const model = requestedModel && requestedModel.startsWith('gpt-') ? requestedModel : 'gpt-5.4-mini';
   const resp = await fetch(`${OPENAI_OAUTH_URL}/chat/completions`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
       model,
-      messages,
-      response_format: { type: 'json_object' }
+      messages
     }),
-    signal: AbortSignal.timeout(25000)
+    signal: AbortSignal.timeout(35000)
   });
 
   if (!resp.ok) {
@@ -284,16 +315,29 @@ async function queryOpenAIOAuth(messages, requestedModel = 'gpt-5.4') {
     throw new Error('Empty response received from OpenAI OAuth proxy.');
   }
 
-  return JSON.parse(content);
+  return extractJSON(content);
 }
 
 /**
- * Sole AI Solver: Exclusively uses authenticated OpenAI OAuth (ChatGPT).
+ * Sole AI Solver: Exclusively uses authenticated OpenAI OAuth with automatic model fallback.
  */
 async function queryAI(messages, requestedModel) {
-  const oauthModel = requestedModel?.startsWith('gpt-') ? requestedModel : 'gpt-5.4';
-  console.log(`[Miku Quizer] 🧠 Solving exclusively via OpenAI OAuth (${oauthModel})...`);
-  return await queryOpenAIOAuth(messages, oauthModel);
+  const preferred = requestedModel?.startsWith('gpt-') ? requestedModel : 'gpt-5.4-mini';
+  const fallbackModels = [preferred, 'gpt-5.4-mini', 'gpt-5.4', 'gpt-5.5'];
+  const uniqueModels = [...new Set(fallbackModels)];
+
+  let lastErr = null;
+  for (const model of uniqueModels) {
+    try {
+      console.log(`[Miku Quizer] 🧠 Solving via OpenAI OAuth (${model})...`);
+      const result = await queryOpenAIOAuth(messages, model);
+      return { parsed: result, usedModel: model };
+    } catch (err) {
+      console.warn(`[Miku Quizer] ⚠️ Model ${model} failed: ${err.message}. Trying next...`);
+      lastErr = err;
+    }
+  }
+  throw lastErr;
 }
 
 // Auth Status Endpoint
@@ -398,18 +442,18 @@ app.post('/api/solve', async (req, res) => {
     while (attempts < maxAttempts) {
       attempts++;
       try {
-        rawParsed = await queryAI(messages, model);
-        const validation = validateAIResponse(rawParsed, validOptionLabels);
+        const aiResult = await queryAI(messages, model);
+        const validation = validateAIResponse(aiResult.parsed, validOptionLabels);
         if (validation.valid) {
           return res.json({
             success: true,
             provider: 'OpenAI OAuth (ChatGPT)',
-            model: model || 'gpt-5.4',
+            model: aiResult.usedModel || 'gpt-5.4-mini',
             ...validation.data
           });
         }
       } catch (aiErr) {
-        console.warn(`[Miku Quizer] AI query attempt ${attempts} failed:`, aiErr.message);
+        console.warn(`[Miku Quizer] AI solve attempt ${attempts} failed:`, aiErr.message);
         if (attempts >= maxAttempts) {
           return res.status(502).json({
             success: false,
