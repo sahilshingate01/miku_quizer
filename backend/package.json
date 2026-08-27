@@ -1,19 +1,27 @@
 {
   "name": "miku-quizer-backend",
   "version": "1.0.0",
+  "type": "module",
   "description": "Backend API proxy for Miku Quizer Chrome Extension using Groq AI",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
     "dev": "node --watch server.js"
   },
-  "keywords": ["groq", "ai", "miku-quizer", "chrome-extension", "proxy"],
+  "keywords": [
+    "groq",
+    "ai",
+    "miku-quizer",
+    "chrome-extension",
+    "proxy"
+  ],
   "author": "",
   "license": "MIT",
   "dependencies": {
     "cors": "^2.8.5",
     "dotenv": "^16.4.7",
     "express": "^4.21.2",
-    "groq-sdk": "^0.15.0"
+    "groq-sdk": "^0.15.0",
+    "openai-oauth": "^2.0.0"
   }
 }

@@ -309,15 +309,25 @@ document.addEventListener('DOMContentLoaded', async () => {
     btnGoogleLogin.addEventListener('click', async () => {
       showToast('🌐 Opening Google / ChatGPT Login...');
       try {
-        await fetch('http://localhost:3001/api/auth/login', { method: 'POST' });
+        const resp = await fetch('http://localhost:3001/api/auth/login', { method: 'POST' });
+        if (resp.ok) {
+          const resData = await resp.json();
+          if (resData.authUrl) {
+            chrome.tabs.create({ url: resData.authUrl });
+          }
+        }
+        let attempts = 0;
         const pollTimer = setInterval(async () => {
+          attempts++;
           const authed = await checkAuthStatus();
           if (authed) {
             clearInterval(pollTimer);
             showToast('✨ Logged in with ChatGPT!');
             refreshStats();
+          } else if (attempts > 60) {
+            clearInterval(pollTimer);
           }
-        }, 2000);
+        }, 1500);
       } catch (err) {
         showToast('⚠️ Could not start login. Ensure backend is running.');
       }
@@ -326,10 +336,30 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   if (btnReAuth) {
     btnReAuth.addEventListener('click', async () => {
-      showToast('🌐 Re-authenticating ChatGPT account...');
+      showToast('🌐 Switching / Refreshing ChatGPT account...');
       try {
-        await fetch('http://localhost:3001/api/auth/login', { method: 'POST' });
-      } catch (err) {}
+        const resp = await fetch('http://localhost:3001/api/auth/login', { method: 'POST' });
+        if (resp.ok) {
+          const resData = await resp.json();
+          if (resData.authUrl) {
+            chrome.tabs.create({ url: resData.authUrl });
+          }
+        }
+        let attempts = 0;
+        const pollTimer = setInterval(async () => {
+          attempts++;
+          const authed = await checkAuthStatus();
+          if (authed) {
+            clearInterval(pollTimer);
+            showToast('✨ Account updated!');
+            refreshStats();
+          } else if (attempts > 60) {
+            clearInterval(pollTimer);
+          }
+        }, 1500);
+      } catch (err) {
+        showToast('⚠️ Could not start login. Ensure backend is running.');
+      }
     });
   }
 

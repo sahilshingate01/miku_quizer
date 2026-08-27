@@ -5,7 +5,7 @@ import path from 'path';
 import fs from 'fs';
 import os from 'os';
 import { fileURLToPath } from 'url';
-import { spawn } from 'child_process';
+import { runOpenAIOAuthLogin, startOpenAIOAuthServer } from 'openai-oauth';
 
 dotenv.config();
 
@@ -91,6 +91,7 @@ function validateAIResponse(parsed, validOptionLabels) {
 // Cached OAuth status
 let cachedOAuthAvailable = false;
 let lastOAuthCheck = 0;
+let oauthServerInstance = null;
 
 async function isOpenAIOAuthAvailable(force = false) {
   const now = Date.now();
@@ -110,6 +111,115 @@ async function isOpenAIOAuthAvailable(force = false) {
     lastOAuthCheck = now;
     return false;
   }
+}
+
+/**
+ * Ensure OpenAI OAuth proxy server is running.
+ */
+async function ensureOpenAIOAuthRunning() {
+  const available = await isOpenAIOAuthAvailable(true);
+  if (!available) {
+    try {
+      console.log('[Miku Quizer] 🚀 Starting embedded OpenAI OAuth proxy on port 10531...');
+      oauthServerInstance = await startOpenAIOAuthServer({ port: 10531 });
+      cachedOAuthAvailable = true;
+      console.log('[Miku Quizer] ✨ OpenAI OAuth proxy listening on:', oauthServerInstance.url);
+    } catch (err) {
+      if (err.message && err.message.includes('EADDRINUSE')) {
+        cachedOAuthAvailable = true;
+      } else {
+        console.warn('[Miku Quizer] ⚠️ Could not start OAuth proxy:', err.message);
+      }
+    }
+  } else {
+    console.log('[Miku Quizer] ✨ OpenAI OAuth proxy connected (http://127.0.0.1:10531/v1)');
+  }
+}
+
+ensureOpenAIOAuthRunning();
+
+/**
+ * Read stored auth tokens from ~/.codex/auth.json
+ */
+function getStoredAuthInfo() {
+  try {
+    const authPath = path.join(os.homedir(), '.codex', 'auth.json');
+    if (!fs.existsSync(authPath)) return null;
+
+    const data = JSON.parse(fs.readFileSync(authPath, 'utf8'));
+    if (data && data.tokens) {
+      let email = 'ChatGPT User';
+      let name = 'User';
+
+      if (data.tokens.id_token) {
+        const parts = data.tokens.id_token.split('.');
+        if (parts.length >= 2) {
+          try {
+            const payload = JSON.parse(Buffer.from(parts[1], 'base64').toString('utf8'));
+            email = payload.email || email;
+            name = payload.name || name;
+          } catch {}
+        }
+      }
+
+      return {
+        email,
+        name,
+        hasTokens: Boolean(data.tokens.access_token || data.tokens.refresh_token)
+      };
+    }
+  } catch (err) {
+    console.warn('[Miku Quizer] Could not read auth info:', err.message);
+  }
+  return null;
+}
+
+// Active OAuth login tracking
+let activeLoginPromise = null;
+let currentAuthUrl = null;
+
+/**
+ * Initiate universal OAuth Login Flow with Google / ChatGPT
+ */
+async function triggerOAuthLogin() {
+  if (activeLoginPromise && currentAuthUrl) {
+    return { inProgress: true, authUrl: currentAuthUrl };
+  }
+
+  currentAuthUrl = null;
+
+  activeLoginPromise = runOpenAIOAuthLogin({
+    openBrowser: true,
+    onMessage: (msg) => {
+      console.log('[Miku Quizer OAuth]', msg);
+      if (typeof msg === 'string' && msg.includes('login URL:')) {
+        const parts = msg.split('login URL:');
+        if (parts[1]) {
+          currentAuthUrl = parts[1].trim();
+        }
+      }
+    }
+  }).then((res) => {
+    console.log('[Miku Quizer OAuth] ✨ Login successful! Saved to:', res.path);
+    activeLoginPromise = null;
+    currentAuthUrl = null;
+    cachedOAuthAvailable = false;
+    ensureOpenAIOAuthRunning();
+    return res;
+  }).catch((err) => {
+    console.warn('[Miku Quizer OAuth] ⚠️ Login note:', err.message);
+    activeLoginPromise = null;
+    currentAuthUrl = null;
+    throw err;
+  });
+
+  // Give brief moment for auth URL to generate
+  for (let i = 0; i < 15; i++) {
+    if (currentAuthUrl) break;
+    await new Promise(r => setTimeout(r, 100));
+  }
+
+  return { inProgress: true, authUrl: currentAuthUrl };
 }
 
 /**
@@ -151,52 +261,6 @@ async function queryAI(messages, requestedModel) {
   return await queryOpenAIOAuth(messages, oauthModel);
 }
 
-// Auto-spawn OpenAI OAuth proxy if not running
-function ensureOpenAIOAuthRunning() {
-  isOpenAIOAuthAvailable(true).then(available => {
-    if (!available) {
-      const cliPath = '/Users/sahil/Desktop/WorkSpxce/openai-oauth/packages/openai-oauth/dist/cli.js';
-      console.log('[Miku Quizer] 🚀 Spawning OpenAI OAuth proxy on port 10531...');
-      try {
-        const proc = spawn(process.execPath, [cliPath], {
-          detached: true,
-          stdio: 'ignore'
-        });
-        proc.unref();
-      } catch (err) {
-        console.warn('[Miku Quizer] Could not auto-spawn openai-oauth:', err.message);
-      }
-    } else {
-      console.log('[Miku Quizer] ✨ OpenAI OAuth proxy connected (http://127.0.0.1:10531/v1)');
-    }
-  });
-}
-
-ensureOpenAIOAuthRunning();
-
-function getStoredAuthInfo() {
-  try {
-    const authPath = path.join(os.homedir(), '.codex', 'auth.json');
-    if (!fs.existsSync(authPath)) return null;
-
-    const data = JSON.parse(fs.readFileSync(authPath, 'utf8'));
-    if (data && data.tokens && data.tokens.id_token) {
-      const parts = data.tokens.id_token.split('.');
-      if (parts.length >= 2) {
-        const payload = JSON.parse(Buffer.from(parts[1], 'base64').toString('utf8'));
-        return {
-          email: payload.email || 'ChatGPT User',
-          name: payload.name || 'User',
-          hasTokens: Boolean(data.tokens.access_token)
-        };
-      }
-    }
-  } catch (err) {
-    console.warn('[Miku Quizer] Could not read auth info:', err.message);
-  }
-  return null;
-}
-
 // Auth Status Endpoint
 app.get('/api/auth/status', async (req, res) => {
   const authInfo = getStoredAuthInfo();
@@ -211,17 +275,29 @@ app.get('/api/auth/status', async (req, res) => {
 });
 
 // Trigger OAuth Login Flow
-app.post('/api/auth/login', (req, res) => {
+app.post('/api/auth/login', async (req, res) => {
   try {
-    const cliPath = '/Users/sahil/Desktop/WorkSpxce/openai-oauth/packages/openai-oauth/dist/cli.js';
     console.log('[Miku Quizer] 🌐 Launching OpenAI Google/ChatGPT Login...');
-    const loginProc = spawn(process.execPath, [cliPath, 'login'], {
-      detached: true,
-      stdio: 'inherit'
+    const result = await triggerOAuthLogin();
+    res.json({
+      success: true,
+      message: 'OAuth login initiated in browser.',
+      authUrl: result.authUrl
     });
-    loginProc.unref();
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
 
-    res.json({ success: true, message: 'OAuth login initiated in browser.' });
+// Logout / Reset session endpoint
+app.post('/api/auth/logout', (req, res) => {
+  try {
+    const authPath = path.join(os.homedir(), '.codex', 'auth.json');
+    if (fs.existsSync(authPath)) {
+      fs.unlinkSync(authPath);
+    }
+    cachedOAuthAvailable = false;
+    res.json({ success: true, message: 'Logged out successfully.' });
   } catch (err) {
     res.status(500).json({ success: false, error: err.message });
   }
@@ -259,91 +335,61 @@ app.post('/api/solve', async (req, res) => {
   try {
     const { question, options, questionNumber, totalQuestions, model } = req.body;
 
-    if (!question || typeof question !== 'string' || !question.trim()) {
+    if (!question || !options || !Array.isArray(options) || options.length === 0) {
       return res.status(400).json({
-        error: 'Missing or invalid "question" text.'
+        success: false,
+        error: 'Invalid request: "question" string and non-empty "options" array required.'
       });
     }
 
-    if (!Array.isArray(options) || options.length < 2) {
-      return res.status(400).json({
-        error: 'Question must have at least 2 options.'
-      });
+    const validOptionLabels = options.map(o => o.label || o.text);
+    const optionsText = options.map(o => `[${o.label || '?'}] ${o.text}`).join('\n');
+
+    let userPrompt = `Question: ${question}\n\nAvailable Options:\n${optionsText}`;
+    if (questionNumber && totalQuestions) {
+      userPrompt = `[Question ${questionNumber} of ${totalQuestions}]\n${userPrompt}`;
     }
-
-    // Extract option labels and texts
-    const validOptionLabels = options.map((opt, idx) => {
-      if (typeof opt === 'object' && opt.label) return String(opt.label).trim();
-      return String.fromCharCode(65 + idx);
-    });
-
-    const formattedOptions = options.map((opt, idx) => {
-      const label = (typeof opt === 'object' && opt.label) ? opt.label : String.fromCharCode(65 + idx);
-      const text = (typeof opt === 'object' && opt.text) ? opt.text : String(opt);
-      return `${label}. ${text}`;
-    }).join('\n');
-
-    const userPrompt = `Question ${questionNumber ? `${questionNumber}${totalQuestions ? `/${totalQuestions}` : ''}: ` : ''}
-${question.trim()}
-
-Available Options:
-${formattedOptions}
-
-Select the single best option label from: [${validOptionLabels.join(', ')}].`;
 
     const messages = [
       { role: 'system', content: SYSTEM_PROMPT },
       { role: 'user', content: userPrompt }
     ];
 
-    let resultData = null;
+    let rawParsed = null;
+    let attempts = 0;
+    const maxAttempts = 2;
 
-    try {
-      const parsed = await queryAI(messages, model);
-      const validation = validateAIResponse(parsed, validOptionLabels);
-
-      if (validation.valid) {
-        resultData = validation.data;
-      } else {
-        console.warn(`[Miku Quizer] Validation failed on attempt 1: ${validation.reason}. Retrying...`);
-        const retryMessages = [
-          ...messages,
-          { role: 'assistant', content: JSON.stringify(parsed) },
-          {
-            role: 'user',
-            content: `ERROR: ${validation.reason}. Please fix this immediately. Output strictly valid JSON with "answer" equal to one of [${validOptionLabels.join(', ')}].`
-          }
-        ];
-
-        const retryParsed = await queryAI(retryMessages, model);
-        const retryValidation = validateAIResponse(retryParsed, validOptionLabels);
-        if (retryValidation.valid) {
-          resultData = retryValidation.data;
-        } else {
-          throw new Error(`Second attempt validation failed: ${retryValidation.reason}`);
+    while (attempts < maxAttempts) {
+      attempts++;
+      try {
+        rawParsed = await queryAI(messages, model);
+        const validation = validateAIResponse(rawParsed, validOptionLabels);
+        if (validation.valid) {
+          return res.json({
+            success: true,
+            provider: 'OpenAI OAuth (ChatGPT)',
+            model: model || 'gpt-5.4',
+            ...validation.data
+          });
+        }
+      } catch (aiErr) {
+        console.warn(`[Miku Quizer] AI query attempt ${attempts} failed:`, aiErr.message);
+        if (attempts >= maxAttempts) {
+          return res.status(502).json({
+            success: false,
+            error: `OpenAI OAuth query failed: ${aiErr.message}`
+          });
         }
       }
-    } catch (apiErr) {
-      console.error('[Miku Quizer] OpenAI OAuth error:', apiErr.message);
-      return res.status(502).json({
-        error: `OpenAI OAuth Error: ${apiErr.message}`,
-        details: 'Ensure you are signed in with Google/ChatGPT via OpenAI OAuth.'
-      });
     }
 
-    return res.json({
-      success: true,
-      questionNumber: questionNumber || null,
-      totalQuestions: totalQuestions || null,
-      ...resultData
+    return res.status(500).json({
+      success: false,
+      error: 'Failed to obtain valid answer from OpenAI OAuth.'
     });
-
-  } catch (error) {
-    console.error('[Miku Quizer] Server error:', error);
-    res.status(500).json({
-      error: 'Internal server error while processing quiz question.',
-      message: error.message
-    });
+  } catch (err) {
+    console.error('[Miku Quizer] Unexpected error in /api/solve:', err);
+    res.status(500).json({ success: false, error: err.message });
   }
 });
 
