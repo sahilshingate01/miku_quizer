@@ -1,8 +1,9 @@
 import express from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
-import Groq from 'groq-sdk';
 import path from 'path';
+import fs from 'fs';
+import os from 'os';
 import { fileURLToPath } from 'url';
 import { spawn } from 'child_process';
 
@@ -13,12 +14,7 @@ const __dirname = path.dirname(__filename);
 
 const app = express();
 const PORT = process.env.PORT || 3001;
-const GROQ_API_KEY = process.env.GROQ_API_KEY;
 const OPENAI_OAUTH_URL = process.env.OPENAI_OAUTH_URL || 'http://127.0.0.1:10531/v1';
-
-const groq = new Groq({
-  apiKey: GROQ_API_KEY || ''
-});
 
 app.use(cors());
 app.use(express.json({ limit: '1mb' }));
@@ -46,7 +42,7 @@ Rules:
 1. "reasoning" MUST be written first to think through the problem and verify code semantics before picking the answer.
 2. The "answer" field must EXACTLY match one of the supplied option labels (e.g. "A", "B", "C", "D" or exact label provided).
 3. Do not invent choices. Select ONLY from the provided options.
-4. "confidence" must be a float between 0.0 and 1.0 (e.g. 0.98 for 98% certainty).
+4. "confidence" must be a float between 0.0 and 1.0 (e.g. 0.99 for 99% certainty).
 5. "explanation" should explain clearly and directly why the selected answer is correct.
 6. Output raw JSON ONLY. No markdown wrappers or extra text outside JSON.`;
 
@@ -92,14 +88,7 @@ function validateAIResponse(parsed, validOptionLabels) {
   };
 }
 
-const FALLBACK_GROQ_MODELS = [
-  'openai/gpt-oss-120b',
-  'qwen/qwen3.8-27b',
-  'openai/gpt-oss-20b',
-  'qwen/qwen3.6-27b'
-];
-
-// Cached OAuth status to avoid blocking health pings on every query
+// Cached OAuth status
 let cachedOAuthAvailable = false;
 let lastOAuthCheck = 0;
 
@@ -111,7 +100,7 @@ async function isOpenAIOAuthAvailable(force = false) {
   try {
     const resp = await fetch(`${OPENAI_OAUTH_URL}/models`, {
       method: 'GET',
-      signal: AbortSignal.timeout(1000)
+      signal: AbortSignal.timeout(1200)
     });
     cachedOAuthAvailable = resp.ok;
     lastOAuthCheck = now;
@@ -124,10 +113,10 @@ async function isOpenAIOAuthAvailable(force = false) {
 }
 
 /**
- * Query OpenAI OAuth Proxy with ChatGPT account (GPT-5.4 / GPT-5.5).
+ * Query OpenAI OAuth Proxy with ChatGPT account (GPT-5.4 / GPT-5.5 / GPT-5.6).
  */
 async function queryOpenAIOAuth(messages, requestedModel = 'gpt-5.4') {
-  const model = requestedModel.startsWith('gpt-') ? requestedModel : 'gpt-5.4';
+  const model = requestedModel && requestedModel.startsWith('gpt-') ? requestedModel : 'gpt-5.4';
   const resp = await fetch(`${OPENAI_OAUTH_URL}/chat/completions`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -136,99 +125,38 @@ async function queryOpenAIOAuth(messages, requestedModel = 'gpt-5.4') {
       messages,
       response_format: { type: 'json_object' }
     }),
-    signal: AbortSignal.timeout(20000)
+    signal: AbortSignal.timeout(25000)
   });
 
   if (!resp.ok) {
     const errText = await resp.text();
-    throw new Error(`OpenAI OAuth (${resp.status}): ${errText}`);
+    throw new Error(`OpenAI OAuth Error (${resp.status}): ${errText}`);
   }
 
   const data = await resp.json();
   const content = data.choices?.[0]?.message?.content;
   if (!content) {
-    throw new Error('Empty response from OpenAI OAuth proxy.');
+    throw new Error('Empty response received from OpenAI OAuth proxy.');
   }
 
   return JSON.parse(content);
 }
 
 /**
- * Calls Groq API with given messages and model fallback.
- */
-async function queryGroq(messages, requestedModel) {
-  const primaryModel = requestedModel && !requestedModel.startsWith('gpt-')
-    ? requestedModel
-    : (process.env.DEFAULT_MODEL || 'openai/gpt-oss-120b');
-  const modelsToTry = [primaryModel, ...FALLBACK_GROQ_MODELS.filter(m => m !== primaryModel)];
-
-  let lastError = null;
-
-  for (const model of modelsToTry) {
-    try {
-      const completion = await groq.chat.completions.create({
-        messages,
-        model,
-        temperature: 0.1,
-        response_format: { type: 'json_object' }
-      });
-
-      const content = completion.choices[0]?.message?.content;
-      if (content) {
-        return JSON.parse(content);
-      }
-    } catch (err) {
-      console.warn(`[Miku Quizer] Groq model ${model} failed (${err.message}). Trying fallback model...`);
-      lastError = err;
-    }
-  }
-
-  throw lastError || new Error('All Groq models failed.');
-}
-
-/**
- * Unified AI Query: Fast direct routing based on user preference with automatic failover.
+ * Sole AI Solver: Exclusively uses authenticated OpenAI OAuth (ChatGPT).
  */
 async function queryAI(messages, requestedModel) {
-  const isGroqModel = requestedModel && !requestedModel.startsWith('gpt-') && requestedModel !== 'gpt-5.4';
-
-  // 1. Direct Groq Query (Fastest: ~1.2s - 1.5s)
-  if (isGroqModel) {
-    try {
-      console.log(`[Miku Quizer] ⚡ Querying Groq LPU (${requestedModel})...`);
-      return await queryGroq(messages, requestedModel);
-    } catch (err) {
-      console.warn(`[Miku Quizer] Groq failed (${err.message}). Attempting OAuth fallback...`);
-      if (await isOpenAIOAuthAvailable()) {
-        return await queryOpenAIOAuth(messages, 'gpt-5.4');
-      }
-      throw err;
-    }
-  }
-
-  // 2. Direct OpenAI OAuth Query (Highest Accuracy: GPT-5.4)
-  const isOAuthAvailable = await isOpenAIOAuthAvailable();
-  if (isOAuthAvailable) {
-    const oauthModel = requestedModel?.startsWith('gpt-') ? requestedModel : 'gpt-5.4';
-    try {
-      console.log(`[Miku Quizer] 🧠 Querying OpenAI OAuth (${oauthModel})...`);
-      return await queryOpenAIOAuth(messages, oauthModel);
-    } catch (err) {
-      console.warn(`[Miku Quizer] OpenAI OAuth failed: ${err.message}. Failing over to Groq...`);
-    }
-  }
-
-  // 3. Fallback to Groq
-  console.log(`[Miku Quizer] ⚡ Fallback to Groq API (openai/gpt-oss-120b)...`);
-  return await queryGroq(messages, 'openai/gpt-oss-120b');
+  const oauthModel = requestedModel?.startsWith('gpt-') ? requestedModel : 'gpt-5.4';
+  console.log(`[Miku Quizer] 🧠 Solving exclusively via OpenAI OAuth (${oauthModel})...`);
+  return await queryOpenAIOAuth(messages, oauthModel);
 }
 
 // Auto-spawn OpenAI OAuth proxy if not running
 function ensureOpenAIOAuthRunning() {
-  isOpenAIOAuthAvailable().then(available => {
+  isOpenAIOAuthAvailable(true).then(available => {
     if (!available) {
       const cliPath = '/Users/sahil/Desktop/WorkSpxce/openai-oauth/packages/openai-oauth/dist/cli.js';
-      console.log('[Miku Quizer] 🚀 Starting OpenAI OAuth proxy on port 10531...');
+      console.log('[Miku Quizer] 🚀 Spawning OpenAI OAuth proxy on port 10531...');
       try {
         const proc = spawn(process.execPath, [cliPath], {
           detached: true,
@@ -236,7 +164,7 @@ function ensureOpenAIOAuthRunning() {
         });
         proc.unref();
       } catch (err) {
-        console.warn('[Miku Quizer] Could not spawn openai-oauth:', err.message);
+        console.warn('[Miku Quizer] Could not auto-spawn openai-oauth:', err.message);
       }
     } else {
       console.log('[Miku Quizer] ✨ OpenAI OAuth proxy connected (http://127.0.0.1:10531/v1)');
@@ -245,9 +173,6 @@ function ensureOpenAIOAuthRunning() {
 }
 
 ensureOpenAIOAuthRunning();
-
-import fs from 'fs';
-import os from 'os';
 
 function getStoredAuthInfo() {
   try {
@@ -308,29 +233,23 @@ app.get('/api/health', async (req, res) => {
   const authInfo = getStoredAuthInfo();
   res.json({
     status: 'ok',
-    service: 'Miku Quizer Proxy',
+    service: 'Miku Quizer Proxy (Exclusive OpenAI OAuth)',
     openaiOAuth: {
       active: oauthActive,
       endpoint: OPENAI_OAUTH_URL,
       model: 'gpt-5.4',
       user: authInfo ? authInfo.email : null
-    },
-    groq: {
-      hasApiKey: Boolean(GROQ_API_KEY && GROQ_API_KEY !== 'your_groq_api_key_here'),
-      model: process.env.DEFAULT_MODEL || 'openai/gpt-oss-120b'
     }
   });
 });
 
-// List models endpoint
+// List models endpoint (OpenAI OAuth exclusive)
 app.get('/api/models', async (req, res) => {
   const models = [
     'gpt-5.4 (OpenAI OAuth - Highest Accuracy)',
-    'gpt-5.5 (OpenAI OAuth)',
+    'gpt-5.5 (OpenAI OAuth - Advanced Reasoning)',
     'gpt-5.6-terra (OpenAI OAuth)',
-    'openai/gpt-oss-120b (Groq)',
-    'qwen/qwen3.8-27b (Groq)',
-    'openai/gpt-oss-20b (Groq)'
+    'gpt-5.4-mini (OpenAI OAuth - Fast)'
   ];
   res.json({ models, default: 'gpt-5.4' });
 });
@@ -405,10 +324,10 @@ Select the single best option label from: [${validOptionLabels.join(', ')}].`;
         }
       }
     } catch (apiErr) {
-      console.error('[Miku Quizer] AI Service error:', apiErr.message);
+      console.error('[Miku Quizer] OpenAI OAuth error:', apiErr.message);
       return res.status(502).json({
-        error: `AI Service Error: ${apiErr.message}`,
-        details: 'Failed to obtain valid answer from AI providers.'
+        error: `OpenAI OAuth Error: ${apiErr.message}`,
+        details: 'Ensure you are signed in with Google/ChatGPT via OpenAI OAuth.'
       });
     }
 
@@ -434,8 +353,8 @@ app.listen(PORT, () => {
   🎵 Miku Quizer Backend Proxy Active!
   🌐 API Server: http://localhost:${PORT}
   🧪 Interactive Test Quiz: http://localhost:${PORT}/test
-  🧠 OpenAI OAuth (ChatGPT): ${OPENAI_OAUTH_URL} (GPT-5.4)
-  ⚡ Groq Fallback: Ready
+  🧠 Provider: Exclusively OpenAI OAuth (ChatGPT)
+  🤖 Default Model: GPT-5.4
   ======================================================
   `);
 });

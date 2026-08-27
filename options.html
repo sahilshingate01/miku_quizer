@@ -42,19 +42,17 @@
         </div>
 
         <div class="form-group">
-          <label for="modelSelect">AI Reasoning Model</label>
+          <label for="modelSelect">OpenAI OAuth Model (ChatGPT Account)</label>
           <div class="input-with-action">
             <select id="modelSelect">
               <option value="gpt-5.4" selected>gpt-5.4 (OpenAI OAuth - Highest Accuracy)</option>
               <option value="gpt-5.5">gpt-5.5 (OpenAI OAuth - Advanced Reasoning)</option>
-              <option value="gpt-5.6-terra">gpt-5.6-terra (OpenAI OAuth)</option>
-              <option value="openai/gpt-oss-120b">openai/gpt-oss-120b (Groq)</option>
-              <option value="qwen/qwen3.8-27b">qwen/qwen3.8-27b (Groq)</option>
-              <option value="openai/gpt-oss-20b">openai/gpt-oss-20b (Groq - Fast)</option>
+              <option value="gpt-5.6-terra">gpt-5.6-terra (OpenAI OAuth - Next Gen)</option>
+              <option value="gpt-5.4-mini">gpt-5.4-mini (OpenAI OAuth - Fast)</option>
             </select>
             <button type="button" class="btn btn-secondary" id="btn-fetch-models" title="Fetch latest models from backend">Refresh List</button>
           </div>
-          <span class="field-hint">Select the reasoning model used for quiz analysis.</span>
+          <span class="field-hint">Powered exclusively by your authenticated ChatGPT account via OpenAI OAuth.</span>
         </div>
       </section>
 
