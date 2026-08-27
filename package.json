@@ -1,11 +1,12 @@
 {
   "name": "miku-quizer",
   "version": "1.0.0",
+  "type": "module",
   "description": "Smart quiz companion powered by GPT-5.4 via OpenAI OAuth",
   "scripts": {
-    "start": "cd backend && npm install && node server.js",
-    "dev": "cd backend && npm install && node --watch server.js",
-    "test": "node -c content.js background.js popup.js options.js backend/server.js"
+    "start": "node start.js",
+    "dev": "node --watch start.js",
+    "test": "node -c content.js background.js popup.js options.js backend/server.js start.js"
   },
   "keywords": ["ai", "miku-quizer", "chrome-extension", "quiz", "solver"],
   "author": "",
