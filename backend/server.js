@@ -5,7 +5,7 @@ import path from 'path';
 import fs from 'fs';
 import os from 'os';
 import { fileURLToPath } from 'url';
-import { exec, spawn } from 'child_process';
+import { exec } from 'child_process';
 import { runOpenAIOAuthLogin, startOpenAIOAuthServer } from 'openai-oauth';
 import { createOpenAIOAuthRequest } from '@openai-oauth/core';
 
@@ -132,7 +132,7 @@ async function ensureOpenAIOAuthRunning() {
   if (!available) {
     try {
       console.log('[Miku Quizer] 🚀 Starting embedded OpenAI OAuth proxy on port 10531...');
-      oauthServerInstance = await startOpenAIOAuthServer({ port: 10531 });
+      oauthServerInstance = await startOpenAIOAuthServer({ port: 10531, host: '127.0.0.1' });
       cachedOAuthAvailable = true;
       console.log('[Miku Quizer] ✨ OpenAI OAuth proxy listening on:', oauthServerInstance.url);
     } catch (err) {
@@ -188,6 +188,19 @@ function getStoredAuthInfo() {
 // Active OAuth login tracking
 let activeLoginPromise = null;
 let currentAuthUrl = null;
+
+/**
+ * Free any stale process on a given port (e.g. port 1455)
+ */
+function freePort(port) {
+  try {
+    if (process.platform !== 'win32') {
+      exec(`lsof -ti :${port} | xargs kill -9 2>/dev/null || true`);
+    } else {
+      exec(`for /f "tokens=5" %a in ('netstat -aon ^| findstr :${port}') do taskkill /f /pid %a 2>nul`);
+    }
+  } catch {}
+}
 
 /**
  * Initiate universal OAuth Login Flow with Google / ChatGPT
@@ -297,57 +310,16 @@ app.get('/api/auth/status', async (req, res) => {
   });
 });
 
-/**
- * Launch an interactive terminal window executing `npx openai-oauth login`
- */
-function launchTerminalAuthCommand() {
-  const platform = process.platform;
-  const loginCmd = 'npx -y openai-oauth login';
-
-  console.log(`[Miku Quizer] 🖥️ Launching interactive terminal auth command on ${platform}...`);
-
-  try {
-    if (platform === 'darwin') {
-      // macOS: Open native Terminal app and run login command
-      const script = `osascript -e 'tell application "Terminal" to do script "${loginCmd}"' -e 'tell application "Terminal" to activate'`;
-      exec(script, (err) => {
-        if (err) console.warn('[Miku Quizer] Terminal launch note:', err.message);
-      });
-    } else if (platform === 'win32') {
-      // Windows: Open Command Prompt and run login command
-      const child = spawn('cmd.exe', ['/c', 'start', 'cmd', '/k', loginCmd], {
-        detached: true,
-        stdio: 'ignore'
-      });
-      child.unref();
-    } else {
-      // Linux: Try standard terminal emulators
-      const script = `x-terminal-emulator -e "${loginCmd}" || gnome-terminal -- ${loginCmd} || xterm -e "${loginCmd}"`;
-      exec(script, (err) => {
-        if (err) console.warn('[Miku Quizer] Linux terminal launch note:', err.message);
-      });
-    }
-  } catch (err) {
-    console.warn('[Miku Quizer] Could not launch terminal:', err.message);
-  }
-}
-
-// Trigger OAuth Login Flow (Terminal + Direct Browser)
+// Trigger OAuth Login Flow (Direct & Non-conflicting)
 app.post('/api/auth/login', async (req, res) => {
   try {
     console.log('[Miku Quizer] 🌐 Launching OpenAI Google/ChatGPT Login...');
-
-    // 1. Launch interactive terminal running `npx openai-oauth login`
-    launchTerminalAuthCommand();
-
-    // 2. Also initiate non-blocking background handshake for direct Chrome tab opening
     const result = await triggerOAuthLogin();
 
     res.json({
       success: true,
-      message: 'Interactive terminal and browser auth initiated.',
-      authUrl: result.authUrl,
-      command: 'npx -y openai-oauth login'
+      message: 'OAuth login initiated in browser.',
+      authUrl: result.authUrl
     });
   } catch (err) {
     res.status(500).json({ success: false, error: err.message });
